@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <cstring>
 #include <string>
 #include <string_view>
 
@@ -22,12 +21,9 @@ public:
         ++used;
     }
     void append(const char* bytes, std::size_t count) {
-        if (capacity - used < count) [[unlikely]] {
-            data = grow(*storage, used + count);
-            capacity = storage->size();
+        for (std::size_t i = 0; i < count; ++i) {
+            push_back(bytes[i]);
         }
-        std::memcpy(data + used, bytes, count);
-        used += count;
     }
     std::size_t size() const {
         return used;
