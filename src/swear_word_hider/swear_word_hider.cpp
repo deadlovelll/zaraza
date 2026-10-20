@@ -1,60 +1,91 @@
-#include <cctype>
+#include <algorithm>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "swear_word_hider/swear_word_hider.hpp"
 
-// Checks if char is valid or not, see swear_word_hider.hpp above
-bool SwearWordHider::is_allowed_char(std::string_view utf8_char) const {
-    return allowed_chars.contains(utf8_char);
-}
-
-bool SwearWordHider::is_word_boundary(const std::string& text, size_t start, size_t end) {
-    auto is_boundary = [](unsigned char c) {
-        return !std::isalnum(c) && c != '_' && c != '-';
-    };
-
-    if (start > 0) {
-        unsigned char left = static_cast<unsigned char>(text[start - 1]);
-        if (!is_boundary(left)) return false;
-    }
-
-    if (end < text.size()) {
-        unsigned char right = static_cast<unsigned char>(text[end]);
-        if (!is_boundary(right)) return false;
-    }
-
-    return true;
-}
-
-std::string SwearWordHider::hide(
-    const std::string& text,
-    char censor_char,
-    Node* root
-) {
-    std::string result = text;
+std::vector<Token> SwearWordHider::find_profane_tokens(std::vector<Token> tokens, Node* root) {
+    std::vector<bool> profane(tokens.size(), false);
     Node* node = root;
-    for (size_t i = 0; i < text.size();) {
-        size_t len = utf8_sizer.utf8_char_len(static_cast<unsigned char>(text[i]));
-        std::string ch = text.substr(i, len);
-
-        while (node && !node->children.count(ch)) node = node->fail;
-        node = node ? node->children[ch].get() : root;
-
-        if (node && !node->outputs.empty()) {
-            for (const auto& word : node->outputs) {
-                size_t start = i + len - word.size();
-                size_t end = start + word.size();
-                if (start < result.size() && is_word_boundary(result, start, end)) {
-                    for (size_t j = 0; j < word.size(); ++j)
-                        result[start + j] = censor_char;
-                }
+    for (std::size_t k = 0; k < tokens.size(); ++k) {
+        if (k > 0) {
+            node = next_node(node, " ", root);
+        }
+        const std::string& text = tokens[k].text;
+        for (std::size_t i = 0; i < text.size();) {
+            std::size_t len = utf8_sizer.utf8_char_len(static_cast<unsigned char>(text[i]));
+            node = next_node(node, text.substr(i, len), root);
+            i += len;
+        }
+        for (const std::string& word : node->outputs) {
+            std::size_t matched = matched_tokens(tokens, k, word);
+            for (std::size_t m = k + 1 - matched; m <= k; ++m) {
+                profane[m] = true;
             }
         }
-
-        i += len;
     }
-    return result;
+    std::vector<Token> profane_tokens;
+    for (std::size_t k = 0; k < tokens.size(); ++k) {
+        if (profane[k]) {
+            profane_tokens.push_back(std::move(tokens[k]));
+        }
+    }
+    return profane_tokens;
+}
+
+std::vector<std::size_t> SwearWordHider::token_positions(const std::vector<Token>& tokens) {
+    std::size_t count = 0;
+    for (const Token& token : tokens) {
+        count += token.end - token.start + 1;
+    }
+    std::vector<std::size_t> positions;
+    positions.reserve(count);
+    for (const Token& token : tokens) {
+        for (std::size_t position = token.start; position <= token.end; ++position) {
+            positions.push_back(position);
+        }
+    }
+    return positions;
+}
+
+std::string SwearWordHider::hide_tokens(
+    const std::string& text,
+    const std::vector<Token>& tokens,
+    const std::vector<std::size_t>& source_offsets,
+    char censor_char
+) {
+    std::string censored_text;
+    std::size_t copied = 0;
+    std::size_t first = 0;
+    for (const Token& token : tokens) {
+        std::size_t last = first + token.end - token.start;
+        censored_text.append(text, copied, source_offsets[first] - copied);
+        for (std::size_t i = first; i < last; ++i) {
+            if (i == first || source_offsets[i] != source_offsets[i - 1]) {
+                censored_text.push_back(censor_char);
+            }
+        }
+        copied = source_offsets[last];
+        first = last + 1;
+    }
+    censored_text.append(text, copied);
+    return censored_text;
+}
+
+Node* SwearWordHider::next_node(Node* node, const std::string& ch, Node* root) {
+    while (node && !node->children.count(ch)) node = node->fail;
+    return node ? node->children[ch].get() : root;
+}
+
+std::size_t SwearWordHider::matched_tokens(const std::vector<Token>& tokens, std::size_t last, const std::string& word) {
+    std::size_t spaces = static_cast<std::size_t>(std::count(word.begin(), word.end(), ' '));
+    if (spaces > last) {
+        return 0;
+    }
+    std::size_t length = spaces;
+    for (std::size_t k = last - spaces; k <= last; ++k) {
+        length += tokens[k].text.size();
+    }
+    return length == word.size() ? spaces + 1 : 0;
 }

@@ -1,41 +1,21 @@
 #include "profane_detector/profane_detector.hpp"
+#include <cstddef>
+#include <string>
+#include <utility>
 
 std::string ProfaneDetector::censor(const std::string &text, const char censor_char) {
-    std::string normalized_text = text;
-    std::vector<std::size_t> source_offsets;
-    unicode_normalizer.normalize(normalized_text, source_offsets);
-    std::string censored_text;
-    std::size_t copied = 0;
-    for (const Token& token : find_profane_tokens(normalized_text)) {
-        std::size_t start = source_offsets[token.start];
-        censored_text.append(text, copied, start - copied);
-        for (std::size_t i = token.start; i < token.end; ++i) {
-            if (i == token.start || source_offsets[i] != source_offsets[i - 1]) {
-                censored_text.push_back(censor_char);
-            }
-        }
-        copied = source_offsets[token.end];
+    std::string normalized_text = unicode_normalizer.normalize(text);
+    std::vector<Token> tokens = tokenizer.tokenize(normalized_text);
+    std::vector<Token> profane_tokens = swear_word_hider.find_profane_tokens(std::move(tokens), root.get());
+    if (profane_tokens.empty()) {
+        return text;
     }
-    censored_text.append(text, copied);
-    return censored_text;
+    std::vector<std::size_t> list_of_token_positions = swear_word_hider.token_positions(profane_tokens);
+    std::vector<std::size_t> source_offsets = unicode_normalizer.map_to_source(text, list_of_token_positions);
+    return swear_word_hider.hide_tokens(text, profane_tokens, source_offsets, censor_char);
 }
 
 bool ProfaneDetector::contains_profanity(const std::string &text) {
-    std::string normalized_text = text;
-    unicode_normalizer.normalize(normalized_text);
-    return !find_profane_tokens(normalized_text).empty();
-}
-
-std::vector<Token> ProfaneDetector::find_profane_tokens(const std::string& normalized_text) {
-    std::vector<Token> tokens = tokenizer.tokenize(normalized_text);
-    std::string hidden = swear_word_hider.hide(tokenizer.join(tokens), '*', root.get());
-    std::vector<Token> profane_tokens;
-    std::size_t offset = 0;
-    for (const Token& token : tokens) {
-        if (hidden.find_first_not_of('*', offset) >= offset + token.text.size()) {
-            profane_tokens.push_back(token);
-        }
-        offset += token.text.size() + 1;
-    }
-    return profane_tokens;
+    std::vector<Token> tokens = tokenizer.tokenize(unicode_normalizer.normalize(text));
+    return !swear_word_hider.find_profane_tokens(std::move(tokens), root.get()).empty();
 }

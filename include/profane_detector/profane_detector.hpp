@@ -26,6 +26,4 @@ private:
     CensorWordsLoader censor_words_loader;
     UnicodeNormalizer unicode_normalizer;
     Tokenizer tokenizer;
-
-    std::vector<Token> find_profane_tokens(const std::string& normalized_text);
 };

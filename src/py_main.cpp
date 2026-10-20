@@ -6,10 +6,10 @@
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(faster_profanity, fp) {
-    fp.doc() = R"doc(docs will be here)doc";
+PYBIND11_MODULE(zaraza, z) {
+    z.doc() = R"doc(docs will be here)doc";
     py::class_<ProfaneDetector>(
-        fp, 
+        z, 
         "ProfaneDetector", 
         R"doc(docs will be here)doc"
     )

@@ -3,26 +3,39 @@
 
 #include <utf8proc.h>
 
-void UnicodeNormalizer::normalize(std::string& text) {
-    normalize_text<false>(text, nullptr);
+std::string UnicodeNormalizer::normalize(std::string_view text) {
+    return normalize_text<false>(text, nullptr, nullptr);
 }
 
-void UnicodeNormalizer::normalize(std::string& text, std::vector<std::size_t>& source_offsets) {
-    normalize_text<true>(text, &source_offsets);
+std::vector<std::size_t> UnicodeNormalizer::map_to_source(
+    std::string_view text,
+    const std::vector<std::size_t>& positions
+) {
+    std::vector<std::size_t> offsets;
+    normalize_text<true>(text, &positions, &offsets);
+    return offsets;
 }
 
 template <bool with_offsets>
-void UnicodeNormalizer::normalize_text(std::string& text, std::vector<std::size_t>* source_offsets) {
+std::string UnicodeNormalizer::normalize_text(
+    std::string_view source,
+    const std::vector<std::size_t>* positions,
+    std::vector<std::size_t>* source_offsets
+) {
     std::string normalized;
-    OutputBuffer out(normalized, text.size());
+    OutputBuffer out(normalized, source.size());
     OffsetsBuffer offsets;
     if constexpr (with_offsets) {
-        offsets = OffsetsBuffer(*source_offsets, text.size() + 1);
+        offsets = OffsetsBuffer(*source_offsets, positions->size());
     }
-    const std::string_view source = text;
     const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(source.size());
     std::ptrdiff_t pos = 0;
     while (pos < size) {
+        if constexpr (with_offsets) {
+            if (offsets.size() == positions->size()) {
+                break;
+            }
+        }
         SourceChar source_char = read_char(source, pos);
         CharKind kind = classify_char(source_char);
         recompose_separate_letter(source, source_char, kind);
@@ -73,22 +86,27 @@ void UnicodeNormalizer::normalize_text(std::string& text, std::vector<std::size_
             }
         }
         if constexpr (with_offsets) {
-            offsets = record_offsets(offsets, out.size(), source_char.start);
+            offsets = record_offsets(offsets, *positions, out.size(), source_char.start);
         }
         pos = source_char.end;
     }
     if constexpr (with_offsets) {
-        offsets.push_back(text.size());
+        while (offsets.size() < positions->size()) {
+            offsets.push_back(source.size());
+        }
         offsets.finish();
     }
     out.finish();
-    text.swap(normalized);
+    return normalized;
 }
 
 OffsetsBuffer UnicodeNormalizer::record_offsets(
-    OffsetsBuffer offsets, std::size_t out_size, std::ptrdiff_t char_start
+    OffsetsBuffer offsets,
+    const std::vector<std::size_t>& positions,
+    std::size_t out_size,
+    std::ptrdiff_t char_start
 ) {
-    while (offsets.size() < out_size) {
+    while (offsets.size() < positions.size() && positions[offsets.size()] < out_size) {
         offsets.push_back(static_cast<std::size_t>(char_start));
     }
     return offsets;
@@ -136,7 +154,9 @@ void UnicodeNormalizer::recompose_separate_letter(std::string_view text, SourceC
 }
 
 OutputBuffer UnicodeNormalizer::append_regional_indicator(
-    OutputBuffer out, SourceChar source_char, std::string_view text
+    OutputBuffer out,
+    SourceChar source_char,
+    std::string_view text
 ) {
     if (is_regional_indicator_at(text, source_char.start - 4) || is_regional_indicator_at(text, source_char.end)) {
         out = append_source(out, source_char, text);
@@ -147,7 +167,9 @@ OutputBuffer UnicodeNormalizer::append_regional_indicator(
 }
 
 OutputBuffer UnicodeNormalizer::append_source(
-    OutputBuffer out, SourceChar source_char, std::string_view text
+    OutputBuffer out,
+    SourceChar source_char,
+    std::string_view text
 ) {
     out.append(text.data() + source_char.start, static_cast<std::size_t>(source_char.end - source_char.start));
     return out;

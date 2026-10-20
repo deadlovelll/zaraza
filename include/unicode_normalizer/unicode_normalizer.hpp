@@ -18,16 +18,25 @@
 // strips diacritics (é -> e) and replaces lookalikes of Latin letters with them (Cyrillic с -> c).
 class UnicodeNormalizer {
 public:
-    void normalize(std::string& text);
-    void normalize(std::string& text, std::vector<std::size_t>& source_offsets);
+    [[nodiscard]] std::string normalize(std::string_view text);
+    std::vector<std::size_t> map_to_source(std::string_view text, const std::vector<std::size_t>& positions);
 private:
     CharClassifier char_classifier;
     DiacriticsStripper diacritics_stripper;
 
     template <bool with_offsets>
-    void normalize_text(std::string& text, std::vector<std::size_t>* source_offsets);
+    std::string normalize_text(
+        std::string_view source,
+        const std::vector<std::size_t>* positions,
+        std::vector<std::size_t>* source_offsets
+    );
 
-    OffsetsBuffer record_offsets(OffsetsBuffer offsets, std::size_t out_size, std::ptrdiff_t char_start);
+    OffsetsBuffer record_offsets(
+        OffsetsBuffer offsets,
+        const std::vector<std::size_t>& positions,
+        std::size_t out_size,
+        std::ptrdiff_t char_start
+    );
     SourceChar read_char(std::string_view text, std::ptrdiff_t pos);
     CharKind classify_char(SourceChar source_char);
     void recompose_separate_letter(std::string_view text, SourceChar& source_char, CharKind& kind);
