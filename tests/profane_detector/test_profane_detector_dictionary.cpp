@@ -28,6 +28,13 @@ TEST(ProfaneDetectorDictionaryTest, SpacedLettersFound) {
     EXPECT_EQ(detector.censor("f.u.c.k", '*'), "*******");
 }
 
+TEST(ProfaneDetectorDictionaryTest, PhraseAcrossBatchBoundaryFound) {
+    ProfaneDetector detector = make_detector("son of a bitch\n");
+    std::string padding(65530, 'x');
+    EXPECT_EQ(detector.censor(padding + " son of a bitch", '*'), padding + " *** ** * *****");
+    EXPECT_TRUE(detector.contains_profanity(padding + " son of a bitch"));
+}
+
 TEST(ProfaneDetectorDictionaryTest, WordsBetweenHyphensAndUnderscoresFound) {
     ProfaneDetector detector = make_detector("fuck\n");
     EXPECT_EQ(detector.censor("-fuck- _fuck_", '*'), "-****- _****_");

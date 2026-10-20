@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <unordered_set>
@@ -15,9 +16,10 @@ public:
         add_words(words);
         build();
     }
-    std::vector<Node> get_trie();
+    Trie get_trie();
 private:
     std::vector<Node> nodes;
+    std::size_t max_spaces = 0;
     void add_words(const std::unordered_set<std::string>& words);
     void build();
     std::uint32_t child(std::uint32_t node, char32_t ch);

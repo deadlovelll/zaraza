@@ -17,3 +17,8 @@ struct Node {
     std::uint32_t fail = 0;
     std::vector<Match> matches;
 };
+
+struct Trie {
+    std::vector<Node> nodes;
+    std::size_t max_spaces = 0;
+};

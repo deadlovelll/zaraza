@@ -6,14 +6,16 @@
 #include <vector>
 
 #include "node/node.hpp"
+#include "profane_search/profane_search.hpp"
 #include "tokenizer/tokenizer.hpp"
 
 class SwearWordHider {
 public:
-    std::vector<Token> find_profane_tokens(
+    void find_profane_tokens(
         const std::string& text,
-        std::vector<Token> tokens,
-        const std::vector<Node>& trie
+        std::vector<Token>& tokens,
+        const Trie& trie,
+        ProfaneSearch& search
     );
     std::vector<std::size_t> token_positions(const std::vector<Token>& tokens);
     std::string hide_tokens(

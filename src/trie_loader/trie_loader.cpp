@@ -6,8 +6,8 @@
 
 #include <utf8proc.h>
 
-std::vector<Node> TrieLoader::get_trie() {
-    return std::move(nodes);
+Trie TrieLoader::get_trie() {
+    return {std::move(nodes), max_spaces};
 }
 
 // Loads all profane words from set into trie
@@ -40,7 +40,9 @@ void TrieLoader::add_words(const std::unordered_set<std::string>& words) {
             i += static_cast<size_t>(len);
         }
         // Mark the end of word
-        nodes[node].matches.push_back({word.size(), static_cast<std::size_t>(std::count(word.begin(), word.end(), ' '))});
+        std::size_t spaces = static_cast<std::size_t>(std::count(word.begin(), word.end(), ' '));
+        nodes[node].matches.push_back({word.size(), spaces});
+        max_spaces = std::max(max_spaces, spaces);
     }
 }
 

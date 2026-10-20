@@ -103,6 +103,11 @@ TEST_F(TokenizerTest, MixedOrDoubleSeparatorsNotJoined) {
     EXPECT_EQ(texts("f  u  c  k"), (std::vector<std::string>{"f", "u", "c", "k"}));
 }
 
+TEST_F(TokenizerTest, SpacedLettersAcrossBatchBoundaryJoined) {
+    std::string padding(65534, 'x');
+    EXPECT_EQ(texts(padding + " f u c k you more"), (std::vector<std::string>{padding, "fuck", "you", "more"}));
+}
+
 TEST_F(TokenizerTest, JoinSeparatesWordsWithSingleSpaces) {
     std::string text = "arse-licking,  you f u c k";
     EXPECT_EQ(tokenizer.join(text, tokenizer.tokenize(text)), "arse licking you fuck");

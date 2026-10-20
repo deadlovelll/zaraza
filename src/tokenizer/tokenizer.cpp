@@ -1,35 +1,43 @@
 #include "tokenizer/tokenizer.hpp"
 
+#include <algorithm>
 #include <utility>
 
 #include <utf8proc.h>
 
 std::vector<Token> Tokenizer::tokenize(const std::string& text) {
     std::vector<Token> tokens;
-    tokens.reserve(estimate_token_count(text));
-    split_words(text, text.size(), tokens);
-    join_spaced_letters(text, tokens);
+    for (std::size_t pos = 0; pos < text.size();) {
+        pos = tokenize_batch(text, pos, tokens);
+    }
     return tokens;
 }
 
-std::size_t Tokenizer::estimate_token_count(const std::string& text) {
-    const std::size_t sample_size = 4096;
+std::size_t Tokenizer::tokenize_batch(
+    const std::string& text,
+    std::size_t from,
+    std::vector<Token>& tokens
+) {
+    const std::size_t batch_size = 65536;
     const std::size_t bytes_per_token_estimate = 5;
-    if (text.size() <= sample_size) {
-        return text.size() / bytes_per_token_estimate;
-    }
-    std::vector<Token> sample;
-    sample.reserve(sample_size / bytes_per_token_estimate);
-    split_words(text, sample_size, sample);
-    std::size_t estimate = sample.size() * (text.size() / sample_size + 1);
-    return estimate + estimate / 8;
+    std::size_t first = tokens.size();
+    tokens.reserve(std::min(text.size() - from, batch_size) / bytes_per_token_estimate);
+    std::size_t next = split_words(text, from, from + batch_size, tokens);
+    join_spaced_letters(text, tokens, first);
+    return next;
 }
 
-void Tokenizer::split_words(const std::string& text, std::size_t limit, std::vector<Token>& tokens) {
+std::size_t Tokenizer::split_words(
+    const std::string& text,
+    std::size_t from,
+    std::size_t target,
+    std::vector<Token>& tokens
+) {
     const utf8proc_uint8_t* bytes = reinterpret_cast<const utf8proc_uint8_t*>(text.data());
-    std::size_t token_start = 0;
+    const std::size_t limit = text.size();
+    std::size_t token_start = from;
     bool in_token = false;
-    std::size_t pos = 0;
+    std::size_t pos = from;
     while (pos < limit) {
         utf8proc_int32_t code_point = bytes[pos];
         utf8proc_ssize_t len = 1;
@@ -43,12 +51,16 @@ void Tokenizer::split_words(const std::string& text, std::size_t limit, std::vec
         } else if (!word_char && in_token) {
             tokens.push_back({token_start, pos, '\0'});
             in_token = false;
+            if (pos >= target && !is_single_letter(text, tokens.back())) {
+                return pos;
+            }
         }
         pos += len > 0 ? static_cast<std::size_t>(len) : 1;
     }
     if (in_token) {
         tokens.push_back({token_start, limit, '\0'});
     }
+    return limit;
 }
 
 std::string Tokenizer::join(const std::string& text, const std::vector<Token>& tokens) {
@@ -66,9 +78,13 @@ std::string Tokenizer::join(const std::string& text, const std::vector<Token>& t
     return words;
 }
 
-void Tokenizer::join_spaced_letters(const std::string& text, std::vector<Token>& tokens) {
-    std::size_t kept = 0;
-    std::size_t i = 0;
+void Tokenizer::join_spaced_letters(
+    const std::string& text,
+    std::vector<Token>& tokens,
+    std::size_t first
+) {
+    std::size_t kept = first;
+    std::size_t i = first;
     while (i < tokens.size()) {
         std::size_t end = i + 1;
         if (is_single_letter(text, tokens[i]) && tokens[i].end < text.size() && is_spacing_separator(text[tokens[i].end])) {

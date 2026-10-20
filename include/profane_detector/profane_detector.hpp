@@ -21,7 +21,7 @@ public:
     std::string censor(const std::string &text, const char censor_char);
     bool contains_profanity(const std::string &text);
 private:
-    std::vector<Node> trie;
+    Trie trie;
     SwearWordHider swear_word_hider;
     CensorWordsLoader censor_words_loader;
     UnicodeNormalizer unicode_normalizer;

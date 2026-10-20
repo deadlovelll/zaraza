@@ -7,46 +7,46 @@
 
 #include <utf8proc.h>
 
-std::vector<Token> SwearWordHider::find_profane_tokens(
+void SwearWordHider::find_profane_tokens(
     const std::string& text,
-    std::vector<Token> tokens,
-    const std::vector<Node>& trie
+    std::vector<Token>& tokens,
+    const Trie& trie,
+    ProfaneSearch& search
 ) {
     const utf8proc_uint8_t* bytes = reinterpret_cast<const utf8proc_uint8_t*>(text.data());
-    std::vector<bool> profane(tokens.size(), false);
-    std::uint32_t node = 0;
-    for (std::size_t k = 0; k < tokens.size(); ++k) {
-        if (k > 0) {
-            node = next_node(trie, node, U' ');
-        }
-        for (std::size_t i = tokens[k].start; i < tokens[k].end;) {
-            if (text[i] == tokens[k].separator) {
+    std::uint32_t node = search.node;
+    for (std::size_t k = search.carried; k < tokens.size(); ++k) {
+        node = next_node(trie.nodes, node, U' ');
+        const Token token = tokens[k];
+        for (std::size_t i = token.start; i < token.end;) {
+            if (bytes[i] == static_cast<utf8proc_uint8_t>(token.separator)) {
                 ++i;
                 continue;
             }
             utf8proc_int32_t code_point = bytes[i];
             utf8proc_ssize_t len = 1;
             if (code_point >= 0x80) {
-                len = utf8proc_iterate(bytes + i, static_cast<utf8proc_ssize_t>(tokens[k].end - i), &code_point);
+                len = utf8proc_iterate(bytes + i, static_cast<utf8proc_ssize_t>(token.end - i), &code_point);
             }
-            node = next_node(trie, node, static_cast<char32_t>(code_point));
+            node = next_node(trie.nodes, node, static_cast<char32_t>(code_point));
             i += static_cast<std::size_t>(len);
         }
-        for (const Match& match : trie[node].matches) {
+        for (const Match& match : trie.nodes[node].matches) {
             std::size_t matched = matched_tokens(text, tokens, k, match);
+            if (matched == 0) {
+                continue;
+            }
+            while (!search.profane_tokens.empty() && search.profane_tokens.back().start >= tokens[k + 1 - matched].start) {
+                search.profane_tokens.pop_back();
+            }
             for (std::size_t m = k + 1 - matched; m <= k; ++m) {
-                profane[m] = true;
+                search.profane_tokens.push_back(tokens[m]);
             }
         }
     }
-    std::vector<Token> profane_tokens;
-    profane_tokens.reserve(static_cast<std::size_t>(std::count(profane.begin(), profane.end(), true)));
-    for (std::size_t k = 0; k < tokens.size(); ++k) {
-        if (profane[k]) {
-            profane_tokens.push_back(std::move(tokens[k]));
-        }
-    }
-    return profane_tokens;
+    search.node = node;
+    search.carried = std::min(tokens.size(), trie.max_spaces);
+    tokens.erase(tokens.begin(), tokens.end() - static_cast<std::ptrdiff_t>(search.carried));
 }
 
 std::vector<std::size_t> SwearWordHider::token_positions(const std::vector<Token>& tokens) {
