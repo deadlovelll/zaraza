@@ -24,7 +24,6 @@ add_library(faster_profanity_lib
     src/swear_word_hider/swear_word_hider.cpp
     src/censor_words_loader/censor_words_loader.cpp
     src/trie_loader/trie_loader.cpp
-    src/utf8_sizer/utf8_sizer.cpp
     src/tokenizer/tokenizer.cpp
     src/unicode_normalizer/unicode_normalizer.cpp
     src/diacritics_stripper/diacritics_stripper.cpp
