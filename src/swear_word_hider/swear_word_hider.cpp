@@ -5,21 +5,24 @@
 
 #include "swear_word_hider/swear_word_hider.hpp"
 
-std::vector<Token> SwearWordHider::find_profane_tokens(std::vector<Token> tokens, Node* root) {
+std::vector<Token> SwearWordHider::find_profane_tokens(const std::string& text, std::vector<Token> tokens, Node* root) {
     std::vector<bool> profane(tokens.size(), false);
     Node* node = root;
     for (std::size_t k = 0; k < tokens.size(); ++k) {
         if (k > 0) {
             node = next_node(node, " ", root);
         }
-        const std::string& text = tokens[k].text;
-        for (std::size_t i = 0; i < text.size();) {
+        for (std::size_t i = tokens[k].start; i < tokens[k].end;) {
+            if (text[i] == tokens[k].separator) {
+                ++i;
+                continue;
+            }
             std::size_t len = utf8_sizer.utf8_char_len(static_cast<unsigned char>(text[i]));
             node = next_node(node, text.substr(i, len), root);
             i += len;
         }
         for (const std::string& word : node->outputs) {
-            std::size_t matched = matched_tokens(tokens, k, word);
+            std::size_t matched = matched_tokens(text, tokens, k, word);
             for (std::size_t m = k + 1 - matched; m <= k; ++m) {
                 profane[m] = true;
             }
@@ -78,14 +81,26 @@ Node* SwearWordHider::next_node(Node* node, const std::string& ch, Node* root) {
     return node ? node->children[ch].get() : root;
 }
 
-std::size_t SwearWordHider::matched_tokens(const std::vector<Token>& tokens, std::size_t last, const std::string& word) {
+std::size_t SwearWordHider::matched_tokens(
+    const std::string& text,
+    const std::vector<Token>& tokens,
+    std::size_t last,
+    const std::string& word
+) {
     std::size_t spaces = static_cast<std::size_t>(std::count(word.begin(), word.end(), ' '));
     if (spaces > last) {
         return 0;
     }
     std::size_t length = spaces;
     for (std::size_t k = last - spaces; k <= last; ++k) {
-        length += tokens[k].text.size();
+        length += tokens[k].end - tokens[k].start;
+        if (tokens[k].separator != '\0') {
+            length -= static_cast<std::size_t>(std::count(
+                text.begin() + static_cast<std::ptrdiff_t>(tokens[k].start),
+                text.begin() + static_cast<std::ptrdiff_t>(tokens[k].end),
+                tokens[k].separator
+            ));
+        }
     }
     return length == word.size() ? spaces + 1 : 0;
 }

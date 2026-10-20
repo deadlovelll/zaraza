@@ -20,7 +20,7 @@ void CensorWordsLoader::load_censor_words(
     std::string line;
     while (std::getline(file, line)) {
         line = unicode_normalizer.normalize(line);
-        censor_words.insert(tokenizer.join(tokenizer.tokenize(line)));
+        censor_words.insert(tokenizer.join(line, tokenizer.tokenize(line)));
     }
 }
 

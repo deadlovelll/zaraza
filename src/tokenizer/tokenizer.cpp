@@ -21,25 +21,29 @@ std::vector<Token> Tokenizer::tokenize(const std::string& text) {
             token_start = pos;
             in_token = true;
         } else if (!word_char && in_token) {
-            tokens.push_back({text.substr(token_start, pos - token_start), token_start, pos});
+            tokens.push_back({token_start, pos, '\0'});
             in_token = false;
         }
         pos += len > 0 ? static_cast<std::size_t>(len) : 1;
     }
     if (in_token) {
-        tokens.push_back({text.substr(token_start), token_start, text.size()});
+        tokens.push_back({token_start, text.size(), '\0'});
     }
     join_spaced_letters(text, tokens);
     return tokens;
 }
 
-std::string Tokenizer::join(const std::vector<Token>& tokens) {
+std::string Tokenizer::join(const std::string& text, const std::vector<Token>& tokens) {
     std::string words;
     for (const Token& token : tokens) {
         if (!words.empty()) {
             words += ' ';
         }
-        words += token.text;
+        for (std::size_t i = token.start; i < token.end; ++i) {
+            if (text[i] != token.separator) {
+                words += text[i];
+            }
+        }
     }
     return words;
 }
@@ -49,11 +53,11 @@ void Tokenizer::join_spaced_letters(const std::string& text, std::vector<Token>&
     std::size_t i = 0;
     while (i < tokens.size()) {
         std::size_t end = i + 1;
-        if (is_single_letter(tokens[i]) && tokens[i].end < text.size() && is_spacing_separator(text[tokens[i].end])) {
+        if (is_single_letter(text, tokens[i]) && tokens[i].end < text.size() && is_spacing_separator(text[tokens[i].end])) {
             char separator = text[tokens[i].end];
             while (
                 end < tokens.size() && tokens[end].start == tokens[end - 1].end + 1
-                && text[tokens[end - 1].end] == separator && is_single_letter(tokens[end]))
+                && text[tokens[end - 1].end] == separator && is_single_letter(text, tokens[end]))
             {
                 ++end;
             }
@@ -66,11 +70,7 @@ void Tokenizer::join_spaced_letters(const std::string& text, std::vector<Token>&
             ++i;
             continue;
         }
-        Token token{"", tokens[i].start, tokens[end - 1].end};
-        for (std::size_t k = i; k < end; ++k) {
-            token.text += tokens[k].text;
-        }
-        tokens[kept] = std::move(token);
+        tokens[kept] = {tokens[i].start, tokens[end - 1].end, text[tokens[i].end]};
         ++kept;
         i = end;
     }
@@ -86,13 +86,13 @@ bool Tokenizer::is_word_char(char32_t code_point) {
     return category >= UTF8PROC_CATEGORY_LU && category <= UTF8PROC_CATEGORY_NO;
 }
 
-bool Tokenizer::is_single_letter(const Token& token) {
+bool Tokenizer::is_single_letter(const std::string& text, const Token& token) {
     utf8proc_int32_t code_point;
     utf8proc_ssize_t len = utf8proc_iterate(
-        reinterpret_cast<const utf8proc_uint8_t*>(token.text.data()), static_cast<utf8proc_ssize_t>(token.text.size()),
+        reinterpret_cast<const utf8proc_uint8_t*>(text.data()) + token.start, static_cast<utf8proc_ssize_t>(token.end - token.start),
         &code_point
     );
-    if (len != static_cast<utf8proc_ssize_t>(token.text.size())) {
+    if (len != static_cast<utf8proc_ssize_t>(token.end - token.start)) {
         return false;
     }
     utf8proc_category_t category = utf8proc_category(code_point);

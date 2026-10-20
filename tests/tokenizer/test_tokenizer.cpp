@@ -9,33 +9,41 @@ class TokenizerTest : public ::testing::Test {
 protected:
     Tokenizer tokenizer;
 
+    std::string text_of(const std::string& text, const Token& token) {
+        std::string letters = text.substr(token.start, token.end - token.start);
+        std::erase(letters, token.separator);
+        return letters;
+    }
+
     std::vector<std::string> texts(const std::string& text) {
         std::vector<std::string> result;
         for (const Token& token : tokenizer.tokenize(text)) {
-            result.push_back(token.text);
+            result.push_back(text_of(text, token));
         }
         return result;
     }
 };
 
 TEST_F(TokenizerTest, WordsWithPositions) {
-    std::vector<Token> tokens = tokenizer.tokenize("hello, world!");
+    std::string text = "hello, world!";
+    std::vector<Token> tokens = tokenizer.tokenize(text);
     ASSERT_EQ(tokens.size(), 2u);
-    EXPECT_EQ(tokens[0].text, "hello");
+    EXPECT_EQ(text_of(text, tokens[0]), "hello");
     EXPECT_EQ(tokens[0].start, 0u);
     EXPECT_EQ(tokens[0].end, 5u);
-    EXPECT_EQ(tokens[1].text, "world");
+    EXPECT_EQ(text_of(text, tokens[1]), "world");
     EXPECT_EQ(tokens[1].start, 7u);
     EXPECT_EQ(tokens[1].end, 12u);
 }
 
 TEST_F(TokenizerTest, NonLatinWordsWithBytePositions) {
-    std::vector<Token> tokens = tokenizer.tokenize("привет мир");
+    std::string text = "привет мир";
+    std::vector<Token> tokens = tokenizer.tokenize(text);
     ASSERT_EQ(tokens.size(), 2u);
-    EXPECT_EQ(tokens[0].text, "привет");
+    EXPECT_EQ(text_of(text, tokens[0]), "привет");
     EXPECT_EQ(tokens[0].start, 0u);
     EXPECT_EQ(tokens[0].end, 12u);
-    EXPECT_EQ(tokens[1].text, "мир");
+    EXPECT_EQ(text_of(text, tokens[1]), "мир");
     EXPECT_EQ(tokens[1].start, 13u);
     EXPECT_EQ(tokens[1].end, 19u);
 }
@@ -65,20 +73,21 @@ TEST_F(TokenizerTest, SpacedLettersJoined) {
     for (const std::string& text : {"f u c k", "f.u.c.k", "f-u-c-k", "f_u_c_k", "f*u*c*k"}) {
         std::vector<Token> tokens = tokenizer.tokenize(text);
         ASSERT_EQ(tokens.size(), 1u) << text;
-        EXPECT_EQ(tokens[0].text, "fuck") << text;
+        EXPECT_EQ(text_of(text, tokens[0]), "fuck") << text;
         EXPECT_EQ(tokens[0].start, 0u) << text;
         EXPECT_EQ(tokens[0].end, 7u) << text;
     }
 }
 
 TEST_F(TokenizerTest, SpacedLettersInsideSentence) {
-    std::vector<Token> tokens = tokenizer.tokenize("you f u c k off");
+    std::string text = "you f u c k off";
+    std::vector<Token> tokens = tokenizer.tokenize(text);
     ASSERT_EQ(tokens.size(), 3u);
-    EXPECT_EQ(tokens[0].text, "you");
-    EXPECT_EQ(tokens[1].text, "fuck");
+    EXPECT_EQ(text_of(text, tokens[0]), "you");
+    EXPECT_EQ(text_of(text, tokens[1]), "fuck");
     EXPECT_EQ(tokens[1].start, 4u);
     EXPECT_EQ(tokens[1].end, 11u);
-    EXPECT_EQ(tokens[2].text, "off");
+    EXPECT_EQ(text_of(text, tokens[2]), "off");
 }
 
 TEST_F(TokenizerTest, SpacedCyrillicLettersJoined) {
@@ -95,8 +104,9 @@ TEST_F(TokenizerTest, MixedOrDoubleSeparatorsNotJoined) {
 }
 
 TEST_F(TokenizerTest, JoinSeparatesWordsWithSingleSpaces) {
-    EXPECT_EQ(tokenizer.join(tokenizer.tokenize("arse-licking,  you f u c k")), "arse licking you fuck");
-    EXPECT_EQ(tokenizer.join(tokenizer.tokenize("")), "");
+    std::string text = "arse-licking,  you f u c k";
+    EXPECT_EQ(tokenizer.join(text, tokenizer.tokenize(text)), "arse licking you fuck");
+    EXPECT_EQ(tokenizer.join("", tokenizer.tokenize("")), "");
 }
 
 TEST_F(TokenizerTest, SpacedDigitsAndLongerPiecesNotJoined) {

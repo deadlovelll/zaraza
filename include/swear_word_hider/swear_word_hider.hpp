@@ -10,7 +10,7 @@
 
 class SwearWordHider {
 public:
-    std::vector<Token> find_profane_tokens(std::vector<Token> tokens, Node* root);
+    std::vector<Token> find_profane_tokens(const std::string& text, std::vector<Token> tokens, Node* root);
     std::vector<std::size_t> token_positions(const std::vector<Token>& tokens);
     std::string hide_tokens(
         const std::string& text,
@@ -22,5 +22,10 @@ private:
     UTF8Sizer utf8_sizer;
 
     Node* next_node(Node* node, const std::string& ch, Node* root);
-    std::size_t matched_tokens(const std::vector<Token>& tokens, std::size_t last, const std::string& word);
+    std::size_t matched_tokens(
+        const std::string& text,
+        const std::vector<Token>& tokens,
+        std::size_t last,
+        const std::string& word
+    );
 };
