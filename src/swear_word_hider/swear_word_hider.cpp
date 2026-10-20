@@ -71,6 +71,7 @@ std::string SwearWordHider::hide_tokens(
     char censor_char
 ) {
     std::string censored_text;
+    censored_text.reserve(text.size());
     std::size_t copied = 0;
     std::size_t first = 0;
     for (const Token& token : tokens) {
