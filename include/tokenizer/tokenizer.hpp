@@ -15,6 +15,8 @@ public:
     std::vector<Token> tokenize(const std::string& text);
     std::string join(const std::string& text, const std::vector<Token>& tokens);
 private:
+    std::size_t estimate_token_count(const std::string& text);
+    void split_words(const std::string& text, std::size_t limit, std::vector<Token>& tokens);
     void join_spaced_letters(const std::string& text, std::vector<Token>& tokens);
     bool is_word_char(char32_t code_point);
     bool is_single_letter(const std::string& text, const Token& token);

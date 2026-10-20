@@ -40,6 +40,7 @@ std::vector<Token> SwearWordHider::find_profane_tokens(
         }
     }
     std::vector<Token> profane_tokens;
+    profane_tokens.reserve(static_cast<std::size_t>(std::count(profane.begin(), profane.end(), true)));
     for (std::size_t k = 0; k < tokens.size(); ++k) {
         if (profane[k]) {
             profane_tokens.push_back(std::move(tokens[k]));

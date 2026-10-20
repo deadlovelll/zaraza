@@ -6,15 +6,35 @@
 
 std::vector<Token> Tokenizer::tokenize(const std::string& text) {
     std::vector<Token> tokens;
+    tokens.reserve(estimate_token_count(text));
+    split_words(text, text.size(), tokens);
+    join_spaced_letters(text, tokens);
+    return tokens;
+}
+
+std::size_t Tokenizer::estimate_token_count(const std::string& text) {
+    const std::size_t sample_size = 4096;
+    const std::size_t bytes_per_token_estimate = 5;
+    if (text.size() <= sample_size) {
+        return text.size() / bytes_per_token_estimate;
+    }
+    std::vector<Token> sample;
+    sample.reserve(sample_size / bytes_per_token_estimate);
+    split_words(text, sample_size, sample);
+    std::size_t estimate = sample.size() * (text.size() / sample_size + 1);
+    return estimate + estimate / 8;
+}
+
+void Tokenizer::split_words(const std::string& text, std::size_t limit, std::vector<Token>& tokens) {
     const utf8proc_uint8_t* bytes = reinterpret_cast<const utf8proc_uint8_t*>(text.data());
     std::size_t token_start = 0;
     bool in_token = false;
     std::size_t pos = 0;
-    while (pos < text.size()) {
+    while (pos < limit) {
         utf8proc_int32_t code_point = bytes[pos];
         utf8proc_ssize_t len = 1;
         if (code_point >= 0x80) {
-            len = utf8proc_iterate(bytes + pos, static_cast<utf8proc_ssize_t>(text.size() - pos), &code_point);
+            len = utf8proc_iterate(bytes + pos, static_cast<utf8proc_ssize_t>(limit - pos), &code_point);
         }
         bool word_char = len > 0 && is_word_char(static_cast<char32_t>(code_point));
         if (word_char && !in_token) {
@@ -27,10 +47,8 @@ std::vector<Token> Tokenizer::tokenize(const std::string& text) {
         pos += len > 0 ? static_cast<std::size_t>(len) : 1;
     }
     if (in_token) {
-        tokens.push_back({token_start, text.size(), '\0'});
+        tokens.push_back({token_start, limit, '\0'});
     }
-    join_spaced_letters(text, tokens);
-    return tokens;
 }
 
 std::string Tokenizer::join(const std::string& text, const std::vector<Token>& tokens) {
