@@ -5,21 +5,28 @@
 
 #include "swear_word_hider/swear_word_hider.hpp"
 
+#include <utf8proc.h>
+
 std::vector<Token> SwearWordHider::find_profane_tokens(const std::string& text, std::vector<Token> tokens, Node* root) {
+    const utf8proc_uint8_t* bytes = reinterpret_cast<const utf8proc_uint8_t*>(text.data());
     std::vector<bool> profane(tokens.size(), false);
     Node* node = root;
     for (std::size_t k = 0; k < tokens.size(); ++k) {
         if (k > 0) {
-            node = next_node(node, " ", root);
+            node = next_node(node, U' ', root);
         }
         for (std::size_t i = tokens[k].start; i < tokens[k].end;) {
             if (text[i] == tokens[k].separator) {
                 ++i;
                 continue;
             }
-            std::size_t len = utf8_sizer.utf8_char_len(static_cast<unsigned char>(text[i]));
-            node = next_node(node, text.substr(i, len), root);
-            i += len;
+            utf8proc_int32_t code_point = bytes[i];
+            utf8proc_ssize_t len = 1;
+            if (code_point >= 0x80) {
+                len = utf8proc_iterate(bytes + i, static_cast<utf8proc_ssize_t>(tokens[k].end - i), &code_point);
+            }
+            node = next_node(node, static_cast<char32_t>(code_point), root);
+            i += static_cast<std::size_t>(len);
         }
         for (const std::string& word : node->outputs) {
             std::size_t matched = matched_tokens(text, tokens, k, word);
@@ -76,9 +83,14 @@ std::string SwearWordHider::hide_tokens(
     return censored_text;
 }
 
-Node* SwearWordHider::next_node(Node* node, const std::string& ch, Node* root) {
-    while (node && !node->children.count(ch)) node = node->fail;
-    return node ? node->children[ch].get() : root;
+Node* SwearWordHider::next_node(Node* node, char32_t ch, Node* root) {
+    for (; node != nullptr; node = node->fail) {
+        std::unordered_map<char32_t, std::unique_ptr<Node>>::const_iterator child = node->children.find(ch);
+        if (child != node->children.end()) {
+            return child->second.get();
+        }
+    }
+    return root;
 }
 
 std::size_t SwearWordHider::matched_tokens(

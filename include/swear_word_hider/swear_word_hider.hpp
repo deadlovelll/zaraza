@@ -6,7 +6,6 @@
 
 #include "node/node.hpp"
 #include "tokenizer/tokenizer.hpp"
-#include "utf8_sizer/utf8_sizer.hpp"
 
 class SwearWordHider {
 public:
@@ -19,9 +18,7 @@ public:
         char censor_char
     );
 private:
-    UTF8Sizer utf8_sizer;
-
-    Node* next_node(Node* node, const std::string& ch, Node* root);
+    Node* next_node(Node* node, char32_t ch, Node* root);
     std::size_t matched_tokens(
         const std::string& text,
         const std::vector<Token>& tokens,

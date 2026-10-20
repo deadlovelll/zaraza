@@ -4,7 +4,6 @@
 #include <unordered_set>
 
 #include "node/node.hpp"
-#include "utf8_sizer/utf8_sizer.hpp"
 
 class TrieLoader {
 public:
@@ -17,7 +16,6 @@ public:
     std::unique_ptr<Node> get_trie();
 private:
     std::unique_ptr<Node> root = std::make_unique<Node>();
-    UTF8Sizer utf8_sizer;
     void add_words(const std::unordered_set<std::string>& words);
     void build();
 };

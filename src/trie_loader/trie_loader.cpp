@@ -3,6 +3,8 @@
 #include <memory>
 #include <queue>
 
+#include <utf8proc.h>
+
 std::unique_ptr<Node> TrieLoader::get_trie() {
     return std::move(root);
 }
@@ -14,9 +16,13 @@ void TrieLoader::add_words(const std::unordered_set<std::string>& words) {
         Node* node = root.get();
 
         for (size_t i = 0; i < word.size();) {
-            // Get char length and cast it to string
-            size_t len = utf8_sizer.utf8_char_len(static_cast<unsigned char>(word[i]));
-            std::string ch = word.substr(i, len);
+            utf8proc_int32_t code_point;
+            utf8proc_ssize_t len = utf8proc_iterate(
+                reinterpret_cast<const utf8proc_uint8_t*>(word.data()) + i,
+                static_cast<utf8proc_ssize_t>(word.size() - i),
+                &code_point
+            );
+            char32_t ch = static_cast<char32_t>(code_point);
             // Create new node if it doesn't exist
             if (!node->children.count(ch)) {
                 node->children[ch] = std::make_unique<Node>();
@@ -24,7 +30,7 @@ void TrieLoader::add_words(const std::unordered_set<std::string>& words) {
             }
             // Descend to child
             node = node->children[ch].get();
-            i += len;
+            i += static_cast<size_t>(len);
         }
         // Mark the end of word
         node->outputs.push_back(word);
@@ -35,7 +41,7 @@ void TrieLoader::build() {
     // Bfs queue
     std::queue<Node*> q;
 
-    using Child = std::pair<const std::string, std::unique_ptr<Node>>&;
+    using Child = std::pair<const char32_t, std::unique_ptr<Node>>&;
 
     for (Child entry : root->children) {
         Node* node = entry.second.get();
@@ -47,7 +53,7 @@ void TrieLoader::build() {
         Node* curr = q.front();
         q.pop();
         for (Child entry : curr->children) {
-            const std::string& ch = entry.first;
+            char32_t ch = entry.first;
             Node* child = entry.second.get();
             
             // Get fail links for child node
