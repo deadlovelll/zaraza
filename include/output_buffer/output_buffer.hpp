@@ -31,6 +31,10 @@ public:
     std::string_view view() const {
         return std::string_view(data, used);
     }
+    void keep_last(std::size_t count) {
+        std::copy(data + used - count, data + used, data);
+        used = count;
+    }
     void finish() {
         storage->resize(used);
     }

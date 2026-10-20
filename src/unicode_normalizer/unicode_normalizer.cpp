@@ -22,20 +22,19 @@ std::string UnicodeNormalizer::normalize_text(
     const std::vector<std::size_t>* positions,
     std::vector<std::size_t>* source_offsets
 ) {
+    const std::size_t offsets_window = 4096;
+    const std::size_t max_char_bytes = 4;
     std::string normalized;
-    OutputBuffer out(normalized, source.size());
+    OutputBuffer out(normalized, with_offsets ? std::min(source.size(), offsets_window) : source.size());
     OffsetsBuffer offsets;
+    std::size_t dropped = 0;
+    std::size_t limit = 0;
     if constexpr (with_offsets) {
         offsets = OffsetsBuffer(*source_offsets, positions->size());
     }
     const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(source.size());
     std::ptrdiff_t pos = 0;
     while (pos < size) {
-        if constexpr (with_offsets) {
-            if (offsets.size() == positions->size()) {
-                break;
-            }
-        }
         SourceChar source_char = read_char(source, pos);
         CharKind kind = classify_char(source_char);
         recompose_separate_letter(source, source_char, kind);
@@ -86,7 +85,18 @@ std::string UnicodeNormalizer::normalize_text(
             }
         }
         if constexpr (with_offsets) {
-            offsets = record_offsets(offsets, *positions, out.size(), source_char.start);
+            if (out.size() > limit) {
+                offsets = record_offsets(offsets, *positions, dropped + out.size(), source_char.start);
+                if (offsets.size() == positions->size()) {
+                    break;
+                }
+                limit = (*positions)[offsets.size()] - dropped;
+            }
+            if (out.size() > offsets_window / 2) [[unlikely]] {
+                dropped += out.size() - max_char_bytes;
+                limit -= out.size() - max_char_bytes;
+                out.keep_last(max_char_bytes);
+            }
         }
         pos = source_char.end;
     }
