@@ -16,12 +16,12 @@ public:
         censor_words_loader.load_censor_words(lang, custom_dictionary);
         std::unordered_set<std::string> words = censor_words_loader.get_censor_words();
         TrieLoader trie_loader(words);
-        this->root = trie_loader.get_trie();
+        this->trie = trie_loader.get_trie();
     }
     std::string censor(const std::string &text, const char censor_char);
     bool contains_profanity(const std::string &text);
 private:
-    std::unique_ptr<Node> root;
+    std::vector<Node> trie;
     SwearWordHider swear_word_hider;
     CensorWordsLoader censor_words_loader;
     UnicodeNormalizer unicode_normalizer;

@@ -1,21 +1,26 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 #include "node/node.hpp"
 
 class TrieLoader {
 public:
     TrieLoader(const std::unordered_set<std::string>& words)
-        : root(new Node())
+        : nodes(1)
     {
         add_words(words);
         build();
     }
-    std::unique_ptr<Node> get_trie();
+    std::vector<Node> get_trie();
 private:
-    std::unique_ptr<Node> root = std::make_unique<Node>();
+    std::vector<Node> nodes;
     void add_words(const std::unordered_set<std::string>& words);
     void build();
+    std::uint32_t child(std::uint32_t node, char32_t ch);
+    std::uint32_t fail_child(std::uint32_t node, char32_t ch);
+    void link(std::uint32_t node, std::uint32_t fail);
 };

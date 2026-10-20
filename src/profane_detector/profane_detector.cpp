@@ -6,7 +6,7 @@
 std::string ProfaneDetector::censor(const std::string &text, const char censor_char) {
     std::string normalized_text = unicode_normalizer.normalize(text);
     std::vector<Token> tokens = tokenizer.tokenize(normalized_text);
-    std::vector<Token> profane_tokens = swear_word_hider.find_profane_tokens(normalized_text, std::move(tokens), root.get());
+    std::vector<Token> profane_tokens = swear_word_hider.find_profane_tokens(normalized_text, std::move(tokens), trie);
     if (profane_tokens.empty()) {
         return text;
     }
@@ -18,5 +18,5 @@ std::string ProfaneDetector::censor(const std::string &text, const char censor_c
 bool ProfaneDetector::contains_profanity(const std::string &text) {
     std::string normalized_text = unicode_normalizer.normalize(text);
     std::vector<Token> tokens = tokenizer.tokenize(normalized_text);
-    return !swear_word_hider.find_profane_tokens(normalized_text, std::move(tokens), root.get()).empty();
+    return !swear_word_hider.find_profane_tokens(normalized_text, std::move(tokens), trie).empty();
 }
