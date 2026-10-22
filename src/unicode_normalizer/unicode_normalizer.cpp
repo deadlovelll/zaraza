@@ -7,6 +7,25 @@ std::string UnicodeNormalizer::normalize(std::string_view text) {
     return normalize_text<false>(text, nullptr, nullptr);
 }
 
+std::size_t UnicodeNormalizer::normalize_batch(
+    std::string_view text,
+    std::size_t from,
+    std::string& normalized
+) {
+    const std::size_t batch_size = 65536;
+    std::size_t to = std::min(text.size(), from + batch_size);
+    while (to < text.size() && !is_batch_start(text, to)) {
+        ++to;
+    }
+    std::string batch = normalize(text.substr(from, to - from));
+    if (normalized.empty()) {
+        normalized.swap(batch);
+    } else {
+        normalized += batch;
+    }
+    return to;
+}
+
 std::vector<SourceSpan> UnicodeNormalizer::map_to_source(
     std::string_view text,
     std::vector<Token> tokens
@@ -127,6 +146,14 @@ std::string UnicodeNormalizer::normalize_text(
     }
     out.finish();
     return normalized;
+}
+
+bool UnicodeNormalizer::is_batch_start(std::string_view text, std::size_t pos) {
+    if (static_cast<unsigned char>(text[pos]) < 0x80) {
+        return true;
+    }
+    SourceChar source_char = read_char(text, static_cast<std::ptrdiff_t>(pos));
+    return classify_char(source_char) == CharKind::Regular && !is_regional_indicator(source_char.code_point);
 }
 
 SourceChar UnicodeNormalizer::read_char(std::string_view text, std::ptrdiff_t pos) {

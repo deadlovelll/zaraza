@@ -84,6 +84,31 @@ TEST(ProfaneDetectorDictionaryTest, DigitsInDictionaryWordFound) {
     EXPECT_EQ(detector.censor("asshole a55", '*'), "asshole a55");
 }
 
+TEST(ProfaneDetectorDictionaryTest, WordsAcrossStreamingBatchesFound) {
+    ProfaneDetector detector = make_detector("fuck\nсука\nson of a bitch\nก่\n");
+    std::string tail;
+    while (tail.size() < 200000) {
+        tail += " ab";
+    }
+    for (std::size_t offset : {65528u, 65530u, 65533u, 65535u, 65536u, 65537u, 131071u, 131072u, 131073u}) {
+        std::string padding(offset % 3, 'x');
+        while (padding.size() < offset) {
+            padding += "ab ";
+        }
+        EXPECT_EQ(detector.censor(padding + "s o n of a bitch" + tail, '*'), padding + "***** ** * *****" + tail) << offset;
+        EXPECT_EQ(detector.censor(padding + "ก่ f u c k сука fuck" + tail, '*'), padding + "** ******* **** ****" + tail) << offset;
+    }
+}
+
+TEST(ProfaneDetectorDictionaryTest, TokensLongerThanBatchKeptWhole) {
+    ProfaneDetector detector = make_detector("fuck\n");
+    for (std::size_t length : {65536u, 131072u, 262144u, 300000u}) {
+        std::string token(length, 'x');
+        EXPECT_EQ(detector.censor(token + "fuck fuck", '*'), token + "fuck ****") << length;
+        EXPECT_FALSE(detector.contains_profanity(token + "fuck")) << length;
+    }
+}
+
 TEST(ProfaneDetectorDictionaryTest, ContainsProfanity) {
     ProfaneDetector detector = make_detector("fuck\n");
     EXPECT_TRUE(detector.contains_profanity("F.U.C.K"));

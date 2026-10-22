@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "censor_words_loader/censor_words_loader.hpp"
+#include "profane_search/profane_search.hpp"
 #include "trie_loader/trie_loader.hpp"
 #include "swear_word_hider/swear_word_hider.hpp"
 #include "tokenizer/tokenizer.hpp"
@@ -26,4 +27,10 @@ private:
     CensorWordsLoader censor_words_loader;
     UnicodeNormalizer unicode_normalizer;
     Tokenizer tokenizer;
+
+    void find_profane_tokens(
+        const std::string& text,
+        ProfaneSearch& search,
+        bool first_only
+    );
 };

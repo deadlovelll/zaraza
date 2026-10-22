@@ -43,11 +43,11 @@ void SwearWordHider::find_profane_tokens(
             if (matched == 0) {
                 continue;
             }
-            while (!search.profane_tokens.empty() && search.profane_tokens.back().start >= tokens[k + 1 - matched].start) {
+            while (!search.profane_tokens.empty() && search.profane_tokens.back().start >= search.dropped + tokens[k + 1 - matched].start) {
                 search.profane_tokens.pop_back();
             }
             for (std::size_t m = k + 1 - matched; m <= k; ++m) {
-                search.profane_tokens.push_back(tokens[m]);
+                search.profane_tokens.push_back({search.dropped + tokens[m].start, search.dropped + tokens[m].end, tokens[m].separator});
             }
         }
     }

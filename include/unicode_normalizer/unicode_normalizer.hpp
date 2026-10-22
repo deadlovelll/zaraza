@@ -20,6 +20,11 @@
 class UnicodeNormalizer {
 public:
     [[nodiscard]] std::string normalize(std::string_view text);
+    std::size_t normalize_batch(
+        std::string_view text,
+        std::size_t from,
+        std::string& normalized
+    );
     std::vector<SourceSpan> map_to_source(std::string_view text, std::vector<Token> tokens);
 private:
     CharClassifier char_classifier;
@@ -32,6 +37,7 @@ private:
         std::vector<SourceSpan>* spans
     );
 
+    bool is_batch_start(std::string_view text, std::size_t pos);
     SourceChar read_char(std::string_view text, std::ptrdiff_t pos);
     CharKind classify_char(SourceChar source_char);
     void recompose_separate_letter(std::string_view text, SourceChar& source_char, CharKind& kind);
