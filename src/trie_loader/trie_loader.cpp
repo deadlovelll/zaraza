@@ -8,7 +8,7 @@
 #include <utf8proc.h>
 
 Trie TrieLoader::get_trie() {
-    return {std::move(nodes), max_spaces};
+    return {std::move(nodes), columns, max_spaces};
 }
 
 std::size_t TrieLoader::count_nodes(const std::unordered_set<std::string>& words) {
@@ -26,6 +26,12 @@ std::size_t TrieLoader::count_nodes(const std::unordered_set<std::string>& words
         }
     }
     return prefixes.size() + 1;
+}
+
+void TrieLoader::add_columns() {
+    for (std::size_t i = 0; i < alphabet.size(); ++i) {
+        columns[static_cast<std::uint8_t>(alphabet[i])] = static_cast<std::uint8_t>(i + 1);
+    }
 }
 
 // Loads all profane words from set into trie
@@ -47,8 +53,8 @@ void TrieLoader::add_words(const std::unordered_set<std::string>& words) {
             if (next == 0) {
                 next = static_cast<std::uint32_t>(nodes.size());
                 nodes.emplace_back();
-                if (ch < nodes[node].ascii.size()) {
-                    nodes[node].ascii[ch] = next;
+                if (column(ch) != 0) {
+                    nodes[node].ascii[column(ch)] = next;
                 } else {
                     nodes[node].others[ch] = next;
                 }
@@ -78,11 +84,11 @@ void TrieLoader::build() {
     while (!q.empty()) {
         std::uint32_t curr = q.front();
         q.pop();
-        for (char32_t ch = 0; ch < nodes[curr].ascii.size(); ++ch) {
-            std::uint32_t next = nodes[curr].ascii[ch];
-            std::uint32_t fail_next = nodes[nodes[curr].fail].ascii[ch];
+        for (std::size_t i = 0; i < nodes[curr].ascii.size(); ++i) {
+            std::uint32_t next = nodes[curr].ascii[i];
+            std::uint32_t fail_next = nodes[nodes[curr].fail].ascii[i];
             if (next == 0) {
-                nodes[curr].ascii[ch] = fail_next;
+                nodes[curr].ascii[i] = fail_next;
             } else {
                 link(next, fail_next);
                 q.push(next);
@@ -95,9 +101,13 @@ void TrieLoader::build() {
     }
 }
 
+std::uint8_t TrieLoader::column(char32_t ch) {
+    return ch < columns.size() ? columns[ch] : 0;
+}
+
 std::uint32_t TrieLoader::child(std::uint32_t node, char32_t ch) {
-    if (ch < nodes[node].ascii.size()) {
-        return nodes[node].ascii[ch];
+    if (column(ch) != 0) {
+        return nodes[node].ascii[column(ch)];
     }
     std::unordered_map<char32_t, std::uint32_t>::const_iterator next = nodes[node].others.find(ch);
     return next == nodes[node].others.end() ? 0 : next->second;

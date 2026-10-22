@@ -16,20 +16,27 @@ void SwearWordHider::find_profane_tokens(
     const utf8proc_uint8_t* bytes = reinterpret_cast<const utf8proc_uint8_t*>(text.data());
     std::uint32_t node = search.node;
     for (std::size_t k = search.carried; k < tokens.size(); ++k) {
-        node = next_node(trie.nodes, node, U' ');
+        node = next_node(trie, node, U' ');
         const Token token = tokens[k];
         for (std::size_t i = token.start; i < token.end;) {
             if (bytes[i] == static_cast<utf8proc_uint8_t>(token.separator)) {
                 ++i;
                 continue;
             }
-            utf8proc_int32_t code_point = bytes[i];
-            utf8proc_ssize_t len = 1;
-            if (code_point >= 0x80) {
-                len = utf8proc_iterate(bytes + i, static_cast<utf8proc_ssize_t>(token.end - i), &code_point);
+            if (bytes[i] < 0x80) {
+                node = next_node(trie, node, bytes[i]);
+                ++i;
+                continue;
             }
-            node = next_node(trie.nodes, node, static_cast<char32_t>(code_point));
-            i += static_cast<std::size_t>(len);
+            // Inline UTF-8 decode, tokenizer already validated it
+            std::size_t len = bytes[i] >= 0xF0 ? 4 : bytes[i] >= 0xE0 ? 3 : 2;
+            // Lead byte bits, then 6 bits per continuation byte
+            char32_t code_point = bytes[i] & (0x7Fu >> len);
+            for (std::size_t j = 1; j < len; ++j) {
+                code_point = (code_point << 6) | (bytes[i + j] & 0x3Fu);
+            }
+            node = next_node(trie, node, code_point);
+            i += len;
         }
         for (const Match& match : trie.nodes[node].matches) {
             std::size_t matched = matched_tokens(text, tokens, k, match);
@@ -66,19 +73,19 @@ std::string SwearWordHider::hide_tokens(
     return censored_text;
 }
 
-std::uint32_t SwearWordHider::next_node(const std::vector<Node>& trie, std::uint32_t node, char32_t ch) {
-    if (ch < trie[node].ascii.size()) {
-        return trie[node].ascii[ch];
+std::uint32_t SwearWordHider::next_node(const Trie& trie, std::uint32_t node, char32_t ch) {
+    if (ch < trie.columns.size()) {
+        return trie.nodes[node].ascii[trie.columns[ch]];
     }
     for (;;) {
-        std::unordered_map<char32_t, std::uint32_t>::const_iterator child = trie[node].others.find(ch);
-        if (child != trie[node].others.end()) {
+        std::unordered_map<char32_t, std::uint32_t>::const_iterator child = trie.nodes[node].others.find(ch);
+        if (child != trie.nodes[node].others.end()) {
             return child->second;
         }
         if (node == 0) {
             return 0;
         }
-        node = trie[node].fail;
+        node = trie.nodes[node].fail;
     }
 }
 

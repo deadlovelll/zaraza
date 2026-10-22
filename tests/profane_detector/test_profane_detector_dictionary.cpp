@@ -73,6 +73,17 @@ TEST(ProfaneDetectorDictionaryTest, OneCensorCharPerOriginalCharacter) {
     EXPECT_EQ(detector.censor("o\uFB00", '*'), "**");
 }
 
+TEST(ProfaneDetectorDictionaryTest, ThreeAndFourByteLettersFound) {
+    ProfaneDetector detector = make_detector("漢字\n𠜎𠜱\n");
+    EXPECT_EQ(detector.censor("漢字 𠜎𠜱 漢𠜎", '*'), "** ** 漢𠜎");
+}
+
+TEST(ProfaneDetectorDictionaryTest, DigitsInDictionaryWordFound) {
+    ProfaneDetector detector = make_detector("a55hole\n");
+    EXPECT_EQ(detector.censor("you A55HOLE", '*'), "you *******");
+    EXPECT_EQ(detector.censor("asshole a55", '*'), "asshole a55");
+}
+
 TEST(ProfaneDetectorDictionaryTest, ContainsProfanity) {
     ProfaneDetector detector = make_detector("fuck\n");
     EXPECT_TRUE(detector.contains_profanity("F.U.C.K"));

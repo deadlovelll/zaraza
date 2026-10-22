@@ -24,7 +24,7 @@ public:
         char censor_char
     );
 private:
-    std::uint32_t next_node(const std::vector<Node>& trie, std::uint32_t node, char32_t ch);
+    std::uint32_t next_node(const Trie& trie, std::uint32_t node, char32_t ch);
     std::size_t matched_tokens(
         const std::string& text,
         const std::vector<Token>& tokens,
