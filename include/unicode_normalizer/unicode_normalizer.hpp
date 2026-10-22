@@ -8,9 +8,10 @@
 
 #include "char_classifier/char_classifier.hpp"
 #include "diacritics_stripper/diacritics_stripper.hpp"
-#include "offsets_buffer/offsets_buffer.hpp"
 #include "output_buffer/output_buffer.hpp"
 #include "source_char/source_char.hpp"
+#include "source_span/source_span.hpp"
+#include "token/token.hpp"
 
 // Unambiguous per-character canonicalization done in a single pass over UTF-8 text:
 // removes invisible characters, replaces compatibility characters (fullwidth, mathematical,
@@ -19,7 +20,7 @@
 class UnicodeNormalizer {
 public:
     [[nodiscard]] std::string normalize(std::string_view text);
-    std::vector<std::size_t> map_to_source(std::string_view text, const std::vector<std::size_t>& positions);
+    std::vector<SourceSpan> map_to_source(std::string_view text, std::vector<Token> tokens);
 private:
     CharClassifier char_classifier;
     DiacriticsStripper diacritics_stripper;
@@ -27,16 +28,10 @@ private:
     template <bool with_offsets>
     std::string normalize_text(
         std::string_view source,
-        const std::vector<std::size_t>* positions,
-        std::vector<std::size_t>* source_offsets
+        const std::vector<Token>* tokens,
+        std::vector<SourceSpan>* spans
     );
 
-    OffsetsBuffer record_offsets(
-        OffsetsBuffer offsets,
-        const std::vector<std::size_t>& positions,
-        std::size_t out_size,
-        std::ptrdiff_t char_start
-    );
     SourceChar read_char(std::string_view text, std::ptrdiff_t pos);
     CharKind classify_char(SourceChar source_char);
     void recompose_separate_letter(std::string_view text, SourceChar& source_char, CharKind& kind);

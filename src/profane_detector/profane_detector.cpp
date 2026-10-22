@@ -1,6 +1,7 @@
 #include "profane_detector/profane_detector.hpp"
 #include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 
 std::string ProfaneDetector::censor(const std::string &text, const char censor_char) {
@@ -16,11 +17,8 @@ std::string ProfaneDetector::censor(const std::string &text, const char censor_c
     if (search.profane_tokens.empty()) {
         return text;
     }
-    std::vector<std::size_t> source_offsets = unicode_normalizer.map_to_source(
-        text,
-        swear_word_hider.token_positions(search.profane_tokens)
-    );
-    return swear_word_hider.hide_tokens(text, search.profane_tokens, source_offsets, censor_char);
+    std::vector<SourceSpan> spans = unicode_normalizer.map_to_source(text, std::move(search.profane_tokens));
+    return swear_word_hider.hide_tokens(text, spans, censor_char);
 }
 
 bool ProfaneDetector::contains_profanity(const std::string &text) {

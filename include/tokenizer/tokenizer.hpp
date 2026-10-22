@@ -4,11 +4,7 @@
 #include <string>
 #include <vector>
 
-struct Token {
-    std::size_t start;
-    std::size_t end;
-    char separator;
-};
+#include "token/token.hpp"
 
 class Tokenizer {
 public:

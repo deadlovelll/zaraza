@@ -49,41 +49,18 @@ void SwearWordHider::find_profane_tokens(
     tokens.erase(tokens.begin(), tokens.end() - static_cast<std::ptrdiff_t>(search.carried));
 }
 
-std::vector<std::size_t> SwearWordHider::token_positions(const std::vector<Token>& tokens) {
-    std::size_t count = 0;
-    for (const Token& token : tokens) {
-        count += token.end - token.start + 1;
-    }
-    std::vector<std::size_t> positions;
-    positions.reserve(count);
-    for (const Token& token : tokens) {
-        for (std::size_t position = token.start; position <= token.end; ++position) {
-            positions.push_back(position);
-        }
-    }
-    return positions;
-}
-
 std::string SwearWordHider::hide_tokens(
     const std::string& text,
-    const std::vector<Token>& tokens,
-    const std::vector<std::size_t>& source_offsets,
+    const std::vector<SourceSpan>& spans,
     char censor_char
 ) {
     std::string censored_text;
     censored_text.reserve(text.size());
     std::size_t copied = 0;
-    std::size_t first = 0;
-    for (const Token& token : tokens) {
-        std::size_t last = first + token.end - token.start;
-        censored_text.append(text, copied, source_offsets[first] - copied);
-        for (std::size_t i = first; i < last; ++i) {
-            if (i == first || source_offsets[i] != source_offsets[i - 1]) {
-                censored_text.push_back(censor_char);
-            }
-        }
-        copied = source_offsets[last];
-        first = last + 1;
+    for (const SourceSpan& span : spans) {
+        censored_text.append(text, copied, span.start - copied);
+        censored_text.append(span.stars, censor_char);
+        copied = span.end;
     }
     censored_text.append(text, copied);
     return censored_text;

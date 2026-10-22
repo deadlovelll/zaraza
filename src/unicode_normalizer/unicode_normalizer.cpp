@@ -7,34 +7,40 @@ std::string UnicodeNormalizer::normalize(std::string_view text) {
     return normalize_text<false>(text, nullptr, nullptr);
 }
 
-std::vector<std::size_t> UnicodeNormalizer::map_to_source(
+std::vector<SourceSpan> UnicodeNormalizer::map_to_source(
     std::string_view text,
-    const std::vector<std::size_t>& positions
+    std::vector<Token> tokens
 ) {
-    std::vector<std::size_t> offsets;
-    normalize_text<true>(text, &positions, &offsets);
-    return offsets;
+    std::vector<SourceSpan> spans;
+    normalize_text<true>(text, &tokens, &spans);
+    return spans;
 }
 
 template <bool with_offsets>
 std::string UnicodeNormalizer::normalize_text(
     std::string_view source,
-    const std::vector<std::size_t>* positions,
-    std::vector<std::size_t>* source_offsets
+    const std::vector<Token>* tokens,
+    std::vector<SourceSpan>* spans
 ) {
     const std::size_t offsets_window = 4096;
     const std::size_t max_char_bytes = 4;
     std::string normalized;
     OutputBuffer out(normalized, with_offsets ? std::min(source.size(), offsets_window) : source.size());
-    OffsetsBuffer offsets;
     std::size_t dropped = 0;
     std::size_t limit = 0;
+    std::size_t before = 0;
+    std::size_t produced = 0;
+    std::size_t chars_before = 0;
+    std::size_t event = 0;
     if constexpr (with_offsets) {
-        offsets = OffsetsBuffer(*source_offsets, positions->size());
+        spans->reserve(tokens->size());
     }
     const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(source.size());
     std::ptrdiff_t pos = 0;
     while (pos < size) {
+        if constexpr (with_offsets) {
+            before = out.size();
+        }
         SourceChar source_char = read_char(source, pos);
         CharKind kind = classify_char(source_char);
         recompose_separate_letter(source, source_char, kind);
@@ -85,12 +91,25 @@ std::string UnicodeNormalizer::normalize_text(
             }
         }
         if constexpr (with_offsets) {
+            produced += out.size() > before ? 1 : 0;
             if (out.size() > limit) {
-                offsets = record_offsets(offsets, *positions, dropped + out.size(), source_char.start);
-                if (offsets.size() == positions->size()) {
+                for (; event < 2 * tokens->size(); ++event) {
+                    const Token& token = (*tokens)[event / 2];
+                    limit = (event % 2 == 0 ? token.start : token.end) - dropped;
+                    if (out.size() <= limit) {
+                        break;
+                    }
+                    if (event % 2 == 0) {
+                        spans->push_back({static_cast<std::size_t>(source_char.start), 0, 0});
+                        chars_before = produced - 1;
+                    } else {
+                        spans->back().end = static_cast<std::size_t>(source_char.start);
+                        spans->back().stars = (before < limit ? produced : produced - 1) - chars_before;
+                    }
+                }
+                if (event == 2 * tokens->size()) {
                     break;
                 }
-                limit = (*positions)[offsets.size()] - dropped;
             }
             if (out.size() > offsets_window / 2) [[unlikely]] {
                 dropped += out.size() - max_char_bytes;
@@ -101,25 +120,13 @@ std::string UnicodeNormalizer::normalize_text(
         pos = source_char.end;
     }
     if constexpr (with_offsets) {
-        while (offsets.size() < positions->size()) {
-            offsets.push_back(source.size());
+        if (event % 2 == 1) {
+            spans->back().end = source.size();
+            spans->back().stars = produced - chars_before;
         }
-        offsets.finish();
     }
     out.finish();
     return normalized;
-}
-
-OffsetsBuffer UnicodeNormalizer::record_offsets(
-    OffsetsBuffer offsets,
-    const std::vector<std::size_t>& positions,
-    std::size_t out_size,
-    std::ptrdiff_t char_start
-) {
-    while (offsets.size() < positions.size() && positions[offsets.size()] < out_size) {
-        offsets.push_back(static_cast<std::size_t>(char_start));
-    }
-    return offsets;
 }
 
 SourceChar UnicodeNormalizer::read_char(std::string_view text, std::ptrdiff_t pos) {

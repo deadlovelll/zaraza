@@ -7,6 +7,7 @@
 
 #include "node/node.hpp"
 #include "profane_search/profane_search.hpp"
+#include "source_span/source_span.hpp"
 #include "tokenizer/tokenizer.hpp"
 
 class SwearWordHider {
@@ -17,11 +18,9 @@ public:
         const Trie& trie,
         ProfaneSearch& search
     );
-    std::vector<std::size_t> token_positions(const std::vector<Token>& tokens);
     std::string hide_tokens(
         const std::string& text,
-        const std::vector<Token>& tokens,
-        const std::vector<std::size_t>& source_offsets,
+        const std::vector<SourceSpan>& spans,
         char censor_char
     );
 private:
