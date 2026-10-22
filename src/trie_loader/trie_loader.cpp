@@ -2,12 +2,30 @@
 
 #include <algorithm>
 #include <queue>
+#include <string_view>
 #include <utility>
 
 #include <utf8proc.h>
 
 Trie TrieLoader::get_trie() {
     return {std::move(nodes), max_spaces};
+}
+
+std::size_t TrieLoader::count_nodes(const std::unordered_set<std::string>& words) {
+    std::unordered_set<std::string_view> prefixes;
+    for (const std::string& word : words) {
+        if (word.size() <= 1) continue;
+        for (std::size_t i = 0; i < word.size();) {
+            utf8proc_int32_t code_point;
+            i += static_cast<std::size_t>(utf8proc_iterate(
+                reinterpret_cast<const utf8proc_uint8_t*>(word.data()) + i,
+                static_cast<utf8proc_ssize_t>(word.size() - i),
+                &code_point
+            ));
+            prefixes.insert(std::string_view(word).substr(0, i));
+        }
+    }
+    return prefixes.size() + 1;
 }
 
 // Loads all profane words from set into trie
