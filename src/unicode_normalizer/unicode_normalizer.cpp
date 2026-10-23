@@ -28,10 +28,39 @@ std::size_t UnicodeNormalizer::normalize_batch(
 
 std::vector<SourceSpan> UnicodeNormalizer::map_to_source(
     std::string_view text,
-    std::vector<Token> tokens
+    std::vector<Token> tokens,
+    const std::vector<BatchStart>& batch_starts
 ) {
     std::vector<SourceSpan> spans;
-    normalize_text<true>(text, &tokens, &spans);
+    if (batch_starts.empty()) {
+        normalize_text<true>(text, &tokens, &spans);
+        return spans;
+    }
+    spans.reserve(tokens.size());
+    std::vector<Token> batch_tokens;
+    BatchStart start = {0, 0};
+    std::size_t next = 0;
+    std::vector<Token>::iterator first = tokens.begin();
+    while (first != tokens.end()) {
+        while (next < batch_starts.size() && batch_starts[next].normalized <= first->start) {
+            start = batch_starts[next];
+            ++next;
+        }
+        std::size_t batch_end = next < batch_starts.size() ? batch_starts[next].normalized : SIZE_MAX;
+        std::vector<Token>::iterator last = std::ranges::lower_bound(first, tokens.end(), batch_end, {}, &Token::start);
+        batch_tokens.assign(first, last);
+        for (Token& token : batch_tokens) {
+            token.start -= start.normalized;
+            token.end -= start.normalized;
+        }
+        std::size_t mapped = spans.size();
+        normalize_text<true>(text.substr(start.source), &batch_tokens, &spans);
+        for (std::size_t i = mapped; i < spans.size(); ++i) {
+            spans[i].start += start.source;
+            spans[i].end += start.source;
+        }
+        first = last;
+    }
     return spans;
 }
 

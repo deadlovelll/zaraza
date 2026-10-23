@@ -10,7 +10,7 @@ std::string ProfaneDetector::censor(const std::string &text, const char censor_c
     if (search.profane_tokens.empty()) {
         return text;
     }
-    std::vector<SourceSpan> spans = unicode_normalizer.map_to_source(text, std::move(search.profane_tokens));
+    std::vector<SourceSpan> spans = unicode_normalizer.map_to_source(text, std::move(search.profane_tokens), search.batch_starts);
     return swear_word_hider.hide_tokens(text, spans, censor_char);
 }
 
@@ -34,6 +34,9 @@ void ProfaneDetector::find_profane_tokens(
     while (pos < text.size() || from < normalized.size()) {
         while (pos < text.size() && normalized.size() < from + ahead) {
             pos = unicode_normalizer.normalize_batch(text, pos, normalized);
+            if (pos < text.size()) {
+                search.batch_starts.push_back({pos, search.dropped + normalized.size()});
+            }
         }
         std::size_t kept = tokens.size();
         std::size_t next = tokenizer.tokenize_batch(normalized, from, tokens);

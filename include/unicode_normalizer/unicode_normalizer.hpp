@@ -6,6 +6,7 @@
 #include <string_view>
 #include <vector>
 
+#include "batch_start/batch_start.hpp"
 #include "char_classifier/char_classifier.hpp"
 #include "diacritics_stripper/diacritics_stripper.hpp"
 #include "output_buffer/output_buffer.hpp"
@@ -25,7 +26,11 @@ public:
         std::size_t from,
         std::string& normalized
     );
-    std::vector<SourceSpan> map_to_source(std::string_view text, std::vector<Token> tokens);
+    std::vector<SourceSpan> map_to_source(
+        std::string_view text,
+        std::vector<Token> tokens,
+        const std::vector<BatchStart>& batch_starts
+    );
 private:
     CharClassifier char_classifier;
     DiacriticsStripper diacritics_stripper;

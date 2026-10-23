@@ -418,12 +418,22 @@ TEST_F(UnicodeNormalizerTest, DecomposedCyrillicLettersWithMarkKept) {
 TEST_F(UnicodeNormalizerTest, SourceSpansPointToOriginalCharacters) {
     std::string text = "Ｆu​ß";
     EXPECT_EQ(normalizer.normalize(text), "fuss");
-    EXPECT_EQ(normalizer.map_to_source(text, {{0, 4, '\0'}}), (std::vector<SourceSpan>{{0, 9, 3}}));
-    EXPECT_EQ(normalizer.map_to_source(text, {{1, 3, '\0'}}), (std::vector<SourceSpan>{{3, 7, 2}}));
-    EXPECT_EQ(normalizer.map_to_source(text, {{0, 1, '\0'}, {2, 4, '\0'}}), (std::vector<SourceSpan>{{0, 3, 1}, {7, 9, 1}}));
+    EXPECT_EQ(normalizer.map_to_source(text, {{0, 4, '\0'}}, {}), (std::vector<SourceSpan>{{0, 9, 3}}));
+    EXPECT_EQ(normalizer.map_to_source(text, {{1, 3, '\0'}}, {}), (std::vector<SourceSpan>{{3, 7, 2}}));
+    EXPECT_EQ(normalizer.map_to_source(text, {{0, 1, '\0'}, {2, 4, '\0'}}, {}), (std::vector<SourceSpan>{{0, 3, 1}, {7, 9, 1}}));
 
     std::string decomposed = "хй";
-    EXPECT_EQ(normalizer.map_to_source(decomposed, {{0, 3, '\0'}}), (std::vector<SourceSpan>{{0, 6, 2}}));
+    EXPECT_EQ(normalizer.map_to_source(decomposed, {{0, 3, '\0'}}, {}), (std::vector<SourceSpan>{{0, 6, 2}}));
+}
+
+TEST_F(UnicodeNormalizerTest, SourceSpansFromBatchStartsMatchWholeText) {
+    std::string text = "Ｆu​ß fuß";
+    std::vector<Token> tokens = {{0, 4, '\0'}, {5, 9, '\0'}};
+    std::vector<SourceSpan> spans = {{0, 9, 3}, {10, 14, 3}};
+    EXPECT_EQ(normalizer.map_to_source(text, tokens, {}), spans);
+    EXPECT_EQ(normalizer.map_to_source(text, tokens, {{10, 5}}), spans);
+    EXPECT_EQ(normalizer.map_to_source(text, tokens, {{9, 4}, {11, 6}}), spans);
+    EXPECT_EQ(normalizer.map_to_source(text, {{6, 9, '\0'}}, {{11, 6}}), (std::vector<SourceSpan>{{11, 14, 2}}));
 }
 
 TEST_F(UnicodeNormalizerTest, StrikethroughAndUnderline) {

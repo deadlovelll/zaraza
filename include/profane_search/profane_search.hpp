@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "batch_start/batch_start.hpp"
 #include "tokenizer/tokenizer.hpp"
 
 struct ProfaneSearch {
@@ -11,4 +12,5 @@ struct ProfaneSearch {
     std::size_t carried = 0;
     std::size_t dropped = 0;
     std::vector<Token> profane_tokens;
+    std::vector<BatchStart> batch_starts;
 };

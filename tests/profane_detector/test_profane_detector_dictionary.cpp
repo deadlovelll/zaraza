@@ -100,6 +100,17 @@ TEST(ProfaneDetectorDictionaryTest, WordsAcrossStreamingBatchesFound) {
     }
 }
 
+TEST(ProfaneDetectorDictionaryTest, WordsAfterManyStreamingBatchesFound) {
+    ProfaneDetector detector = make_detector("fuck\n");
+    std::string text;
+    std::string censored;
+    while (text.size() < 1000000) {
+        text += "café fuck ";
+        censored += "café **** ";
+    }
+    EXPECT_EQ(detector.censor(text, '*'), censored);
+}
+
 TEST(ProfaneDetectorDictionaryTest, TokensLongerThanBatchKeptWhole) {
     ProfaneDetector detector = make_detector("fuck\n");
     for (std::size_t length : {65536u, 131072u, 262144u, 300000u}) {
