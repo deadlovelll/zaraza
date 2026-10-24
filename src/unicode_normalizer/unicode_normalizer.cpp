@@ -115,8 +115,44 @@ std::string UnicodeNormalizer::normalize_text(
         spans->reserve(tokens->size());
     }
     const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(source.size());
+    const std::uint8_t* fast = with_offsets ? nullptr : fast_outputs().data();
     std::ptrdiff_t pos = 0;
     while (pos < size) {
+        if constexpr (!with_offsets) {
+            const unsigned char* bytes = reinterpret_cast<const unsigned char*>(source.data());
+            while (pos < size) {
+                unsigned char lead = bytes[pos];
+                if (lead < 0x80) {
+                    out.push_back(lower_ascii(static_cast<char>(lead)));
+                    ++pos;
+                    continue;
+                }
+                char32_t code_point = 0;
+                std::ptrdiff_t len = 0;
+                if (lead >= 0xC2 && lead < 0xE0 && pos + 1 < size && (bytes[pos + 1] & 0xC0) == 0x80) {
+                    code_point = ((lead & 0x1Fu) << 6) | (bytes[pos + 1] & 0x3Fu);
+                    len = 2;
+                } else if (
+                    lead >= 0xE0 && lead < 0xF0 && pos + 2 < size
+                    && (bytes[pos + 1] & 0xC0) == 0x80 && (bytes[pos + 2] & 0xC0) == 0x80
+                ) {
+                    code_point = ((lead & 0x0Fu) << 12) | ((bytes[pos + 1] & 0x3Fu) << 6) | (bytes[pos + 2] & 0x3Fu);
+                    len = code_point >= 0x800 ? 3 : 0;
+                }
+                if (len == 0 || fast[code_point] == 0) {
+                    break;
+                }
+                if (fast[code_point] == 1) {
+                    out.append(source.data() + pos, static_cast<std::size_t>(len));
+                } else {
+                    out.push_back(static_cast<char>(fast[code_point]));
+                }
+                pos += len;
+            }
+            if (pos == size) {
+                break;
+            }
+        }
         if constexpr (with_offsets) {
             before = out.size();
         }
@@ -432,4 +468,31 @@ bool UnicodeNormalizer::lower_ascii_block(const char* bytes, char* lowered) {
     }
     std::memcpy(lowered, chunks, sizeof(chunks));
     return true;
+}
+
+const UnicodeNormalizer::FastOutputs& UnicodeNormalizer::fast_outputs() {
+    static const FastOutputs outputs = build_fast_outputs();
+    return outputs;
+}
+
+// 0: needs the full path, 1: copied as is, otherwise the Latin letter it becomes
+UnicodeNormalizer::FastOutputs UnicodeNormalizer::build_fast_outputs() {
+    FastOutputs outputs{};
+    for (char32_t code_point = 0x80; code_point < outputs.size(); ++code_point) {
+        if (
+            (code_point >= 0xD800 && code_point < 0xE000)
+            || classify_char({code_point, 0, 0}) != CharKind::Regular
+            || is_regional_indicator(code_point)
+            || diacritics_stripper.is_separate_letter_base(code_point)
+        ) {
+            continue;
+        }
+        char latin = ConfusablesMapper::to_latin(code_point);
+        if (latin != 0) {
+            outputs[code_point] = static_cast<std::uint8_t>(latin);
+        } else if (lower(code_point) == code_point) {
+            outputs[code_point] = 1;
+        }
+    }
+    return outputs;
 }

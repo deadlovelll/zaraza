@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -59,4 +60,7 @@ private:
     char32_t lower(char32_t code_point);
     char lower_ascii(char c);
     bool lower_ascii_block(const char* bytes, char* lowered);
+    using FastOutputs = std::array<std::uint8_t, 0x10000>;
+    const FastOutputs& fast_outputs();
+    FastOutputs build_fast_outputs();
 };

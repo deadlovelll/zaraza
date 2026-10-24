@@ -122,6 +122,8 @@ TEST_F(UnicodeNormalizerTest, InvalidUtf8BytesPreserved) {
     std::string text = std::string("A\x80" "B\xFF" "C\xC3", 6);
     text = normalizer.normalize(text);
     EXPECT_EQ(text, std::string("a\x80" "b\xFF" "c\xC3", 6));
+    std::string three = std::string("\xE0\x80\x80" "\xED\xA0\x80" "x\xE3\x81\x82", 10);
+    EXPECT_EQ(normalizer.normalize(std::string_view(three).substr(0, 9)), three.substr(0, 9));
 }
 
 TEST_F(UnicodeNormalizerTest, AllAsciiCharacters) {
