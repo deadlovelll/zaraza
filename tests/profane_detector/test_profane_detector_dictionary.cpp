@@ -3,7 +3,11 @@
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
+#include <stdexcept>
 #include <string>
+#include <system_error>
+#include <utility>
 #include <vector>
 
 #include "profane_detector/profane_detector.hpp"
@@ -14,6 +18,11 @@ static ProfaneDetector make_detector(const std::string& words) {
     ProfaneDetector detector("", path.string());
     std::filesystem::remove(path);
     return detector;
+}
+
+static std::string read_file(const std::filesystem::path& path) {
+    std::ifstream file(path, std::ios::binary);
+    return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 }
 
 TEST(ProfaneDetectorDictionaryTest, NonAsciiDictionaryWordFound) {
@@ -206,9 +215,83 @@ TEST(ProfaneDetectorDictionaryTest, CensorInplaceMatchesCensor) {
     }
 }
 
-TEST(ProfaneDetectorDictionaryTest, CensorInplaceFitsWhenTokenEndsInsideExpansion) {
+TEST(ProfaneDetectorDictionaryTest, TokenEndingInsideExpansionGetsNoExtraStar) {
     ProfaneDetector detector = make_detector("xa1\n");
     std::string buffer = "xa\u2488";
+    EXPECT_EQ(detector.censor(buffer, '*'), "**\u2488");
     std::size_t size = detector.censor_inplace(buffer, '*');
     EXPECT_EQ(buffer.substr(0, size), "**\u2488");
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorFileMatchesCensor) {
+    ProfaneDetector detector = make_detector("fuck\nсука\nson of a bitch\n");
+    std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_test.txt";
+    std::string tail;
+    while (tail.size() < 300000) {
+        tail += " ab сука fuck";
+    }
+    std::vector<std::string> texts = {"", "hello", "you fuck off", "сука ok", "\xEF\xBB\xBF" "fuck", "son of a bitch" + tail};
+    for (const std::string& text : texts) {
+        std::ofstream(path, std::ios::binary) << text;
+        std::size_t size = detector.censor_file(path, '*');
+        EXPECT_EQ(read_file(path), detector.censor(text, '*')) << text.substr(0, 20);
+        EXPECT_EQ(size, std::filesystem::file_size(path));
+    }
+    std::filesystem::remove(path);
+}
+
+static std::string utf16_bytes(const std::u16string& text, bool big_endian) {
+    std::string bytes = big_endian ? "\xFE\xFF" : "\xFF\xFE";
+    for (char16_t unit : text) {
+        char high = static_cast<char>(unit >> 8);
+        char low = static_cast<char>(unit & 0xFF);
+        bytes += big_endian ? std::string{high, low} : std::string{low, high};
+    }
+    return bytes;
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorFileKeepsUtf16) {
+    ProfaneDetector detector = make_detector("fuck\nсука\nсука1\n𠜎𠜱\n");
+    std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_utf16_test.txt";
+    std::u16string tail;
+    std::u16string censored_tail;
+    while (tail.size() < 200000) {
+        tail += u" ab сука fuck";
+        censored_tail += u" ab **** ****";
+    }
+    std::vector<std::pair<std::u16string, std::u16string>> cases = {
+        {u"", u""},
+        {u"You FUCK off, сука! 😀", u"You **** off, ****! 😀"},
+        {u"сука\u2488", u"****\u2488"},
+        {u"𠜎𠜱 ok", u"** ok"},
+        {u"start" + tail, u"start" + censored_tail},
+    };
+    for (bool big_endian : {false, true}) {
+        for (const std::pair<std::u16string, std::u16string>& item : cases) {
+            std::ofstream(path, std::ios::binary) << utf16_bytes(item.first, big_endian);
+            std::size_t size = detector.censor_file(path, '*');
+            EXPECT_EQ(read_file(path), utf16_bytes(item.second, big_endian)) << big_endian << " " << item.first.size();
+            EXPECT_EQ(size, std::filesystem::file_size(path));
+        }
+    }
+    std::ofstream(path, std::ios::binary) << utf16_bytes(u"сука ok", false) + "x";
+    detector.censor_file(path, '*');
+    EXPECT_EQ(read_file(path), utf16_bytes(u"**** ok", false) + "x");
+    std::string lone = utf16_bytes(std::u16string(u"fuck ") + char16_t(0xD800) + u"a", false);
+    std::ofstream(path, std::ios::binary) << lone;
+    EXPECT_THROW(detector.censor_file(path, '*'), std::invalid_argument);
+    EXPECT_EQ(read_file(path), lone);
+    std::filesystem::remove(path);
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorFileRejectsUtf32AndMissingFiles) {
+    ProfaneDetector detector = make_detector("fuck\n");
+    std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_utf32_test.txt";
+    for (std::string utf32 : {std::string("\xFF\xFE\0\0" "f\0\0\0", 8), std::string("\0\0\xFE\xFF" "\0\0\0f", 8)}) {
+        std::ofstream(path, std::ios::binary) << utf32;
+        EXPECT_THROW(detector.censor_file(path, '*'), std::invalid_argument);
+        EXPECT_EQ(read_file(path), utf32);
+    }
+    std::filesystem::remove(path);
+    EXPECT_THROW(detector.censor_file(path, '*'), std::system_error);
 }

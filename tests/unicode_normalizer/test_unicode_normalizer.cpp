@@ -421,7 +421,7 @@ TEST_F(UnicodeNormalizerTest, SourceSpansPointToOriginalCharacters) {
     std::string text = "Ｆu​ß";
     EXPECT_EQ(normalizer.normalize(text), "fuss");
     EXPECT_EQ(normalizer.map_to_source(text, {{0, 4, '\0'}}, {}), (std::vector<SourceSpan>{{0, 9, 3}}));
-    EXPECT_EQ(normalizer.map_to_source(text, {{1, 3, '\0'}}, {}), (std::vector<SourceSpan>{{3, 7, 2}}));
+    EXPECT_EQ(normalizer.map_to_source(text, {{1, 3, '\0'}}, {}), (std::vector<SourceSpan>{{3, 7, 1}}));
     EXPECT_EQ(normalizer.map_to_source(text, {{0, 1, '\0'}, {2, 4, '\0'}}, {}), (std::vector<SourceSpan>{{0, 3, 1}, {7, 9, 1}}));
 
     std::string decomposed = "хй";

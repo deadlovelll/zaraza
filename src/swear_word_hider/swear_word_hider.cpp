@@ -110,7 +110,7 @@ std::size_t SwearWordHider::hide_tokens_inplace(
             std::memmove(text.data() + written, text.data() + copied, span.start - copied);
         }
         written += span.start - copied;
-        // A token ending inside a multi-char expansion gets one star more than it has bytes
+        // Never write over input that is not copied yet
         std::size_t stars = std::min(span.stars, span.end - written);
         std::memset(text.data() + written, censor_char, stars);
         written += stars;

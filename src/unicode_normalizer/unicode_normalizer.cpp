@@ -230,7 +230,7 @@ std::string UnicodeNormalizer::normalize_text(
                         chars_before = produced - 1;
                     } else {
                         spans->back().end = static_cast<std::size_t>(source_char.start);
-                        spans->back().stars = (before < limit ? produced : produced - 1) - chars_before;
+                        spans->back().stars = produced - 1 - chars_before;
                     }
                 }
                 if (event == 2 * tokens->size()) {

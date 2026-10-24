@@ -1,11 +1,15 @@
+#include <cerrno>
 #include <cstddef>
+#include <filesystem>
 #include <span>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 #include <pybind11/detail/common.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl/filesystem.h>
 
 #include "profane_detector/profane_detector.hpp"
 
@@ -64,6 +68,26 @@ PYBIND11_MODULE(zaraza, z) {
                 return size;
             },
             py::arg("buffer"),
+            py::arg("censor_char"),
+            R"doc(docs will be here)doc"
+        )
+        .def(
+            "censor_file",
+            [](ProfaneDetector& detector, const std::filesystem::path& path, char censor_char) {
+                try {
+                    return detector.censor_file(path, censor_char);
+                } catch (const std::system_error& error) {
+                    py::object filename = py::cast(path);
+#ifdef _WIN32
+                    PyErr_SetExcFromWindowsErrWithFilenameObject(PyExc_OSError, error.code().value(), filename.ptr());
+#else
+                    errno = error.code().value();
+                    PyErr_SetFromErrnoWithFilenameObject(PyExc_OSError, filename.ptr());
+#endif
+                    throw py::error_already_set();
+                }
+            },
+            py::arg("path"),
             py::arg("censor_char"),
             R"doc(docs will be here)doc"
         )

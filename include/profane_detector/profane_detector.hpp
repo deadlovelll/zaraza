@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <filesystem>
 #include <span>
 #include <string>
 #include <string_view>
@@ -25,6 +26,7 @@ public:
     std::string censor(std::string_view text, const char censor_char);
     bool censor(std::string_view text, const char censor_char, std::string& censored);
     std::size_t censor_inplace(std::span<char> text, const char censor_char);
+    std::size_t censor_file(const std::filesystem::path& path, const char censor_char);
     bool contains_profanity(std::string_view text);
 private:
     Trie trie;
@@ -34,6 +36,7 @@ private:
     Tokenizer tokenizer;
 
     std::vector<SourceSpan> find_spans(std::string_view text);
+    std::size_t censor_utf16(std::span<char> text, bool big_endian, const char censor_char);
     void find_profane_tokens(
         std::string_view text,
         ProfaneSearch& search,

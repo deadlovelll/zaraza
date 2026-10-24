@@ -19,6 +19,24 @@ endif()
 
 file(COPY ${CMAKE_SOURCE_DIR}/src/data DESTINATION ${CMAKE_BINARY_DIR}/)
 
+add_library(simdutf STATIC
+    third_party/simdutf/simdutf.cpp
+)
+
+target_include_directories(simdutf
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/third_party/simdutf
+)
+
+target_compile_definitions(simdutf
+    PUBLIC
+        SIMDUTF_FEATURE_DETECT_ENCODING=0
+        SIMDUTF_FEATURE_ASCII=0
+        SIMDUTF_FEATURE_LATIN1=0
+        SIMDUTF_FEATURE_UTF32=0
+        SIMDUTF_FEATURE_BASE64=0
+)
+
 add_library(faster_profanity_lib
     src/profane_detector/profane_detector.cpp
     src/swear_word_hider/swear_word_hider.cpp
@@ -35,13 +53,20 @@ add_library(faster_profanity_lib
 target_include_directories(faster_profanity_lib
     PUBLIC
         ${PROJECT_SOURCE_DIR}/include
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/third_party/mio
 )
+
+if(WIN32)
+    target_compile_definitions(faster_profanity_lib PRIVATE NOMINMAX)
+endif()
 
 target_link_libraries(faster_profanity_lib
     PUBLIC
         pybind11::module
     PRIVATE
         utf8proc
+        simdutf
 )
 
 add_executable(faster_profanity
@@ -60,7 +85,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
-    GIT_TAG        v2.11.1  
+    GIT_TAG        v3.1.0
 )
 
 FetchContent_Declare(
@@ -69,6 +94,7 @@ FetchContent_Declare(
     GIT_TAG        v2.12.0
 )
 
+set(PYBIND11_FINDPYTHON NEW CACHE STRING "")
 FetchContent_MakeAvailable(pybind11)
 FetchContent_MakeAvailable(googletest)
 FetchContent_MakeAvailable(utf8proc)
