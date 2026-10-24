@@ -115,43 +115,54 @@ std::string UnicodeNormalizer::normalize_text(
         spans->reserve(tokens->size());
     }
     const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(source.size());
-    const std::uint8_t* fast = with_offsets ? nullptr : fast_outputs().data();
+    const std::uint8_t* fast = fast_outputs().data();
     std::ptrdiff_t pos = 0;
     while (pos < size) {
-        if constexpr (!with_offsets) {
-            const unsigned char* bytes = reinterpret_cast<const unsigned char*>(source.data());
-            while (pos < size) {
-                unsigned char lead = bytes[pos];
-                if (lead < 0x80) {
-                    out.push_back(lower_ascii(static_cast<char>(lead)));
-                    ++pos;
-                    continue;
+        const unsigned char* bytes = reinterpret_cast<const unsigned char*>(source.data());
+        const std::size_t room = std::min(limit, offsets_window / 2);
+        while (pos < size) {
+            unsigned char lead = bytes[pos];
+            if (lead < 0x80) {
+                if constexpr (with_offsets) {
+                    if (out.size() >= room) {
+                        break;
+                    }
+                    ++produced;
                 }
-                char32_t code_point = 0;
-                std::ptrdiff_t len = 0;
-                if (lead >= 0xC2 && lead < 0xE0 && pos + 1 < size && (bytes[pos + 1] & 0xC0) == 0x80) {
-                    code_point = ((lead & 0x1Fu) << 6) | (bytes[pos + 1] & 0x3Fu);
-                    len = 2;
-                } else if (
-                    lead >= 0xE0 && lead < 0xF0 && pos + 2 < size
-                    && (bytes[pos + 1] & 0xC0) == 0x80 && (bytes[pos + 2] & 0xC0) == 0x80
-                ) {
-                    code_point = ((lead & 0x0Fu) << 12) | ((bytes[pos + 1] & 0x3Fu) << 6) | (bytes[pos + 2] & 0x3Fu);
-                    len = code_point >= 0x800 ? 3 : 0;
-                }
-                if (len == 0 || fast[code_point] == 0) {
-                    break;
-                }
-                if (fast[code_point] == 1) {
-                    out.append(source.data() + pos, static_cast<std::size_t>(len));
-                } else {
-                    out.push_back(static_cast<char>(fast[code_point]));
-                }
-                pos += len;
+                out.push_back(lower_ascii(static_cast<char>(lead)));
+                ++pos;
+                continue;
             }
-            if (pos == size) {
+            char32_t code_point = 0;
+            std::ptrdiff_t len = 0;
+            if (lead >= 0xC2 && lead < 0xE0 && pos + 1 < size && (bytes[pos + 1] & 0xC0) == 0x80) {
+                code_point = ((lead & 0x1Fu) << 6) | (bytes[pos + 1] & 0x3Fu);
+                len = 2;
+            } else if (
+                lead >= 0xE0 && lead < 0xF0 && pos + 2 < size
+                && (bytes[pos + 1] & 0xC0) == 0x80 && (bytes[pos + 2] & 0xC0) == 0x80
+            ) {
+                code_point = ((lead & 0x0Fu) << 12) | ((bytes[pos + 1] & 0x3Fu) << 6) | (bytes[pos + 2] & 0x3Fu);
+                len = code_point >= 0x800 ? 3 : 0;
+            }
+            if (len == 0 || fast[code_point] == 0) {
                 break;
             }
+            if constexpr (with_offsets) {
+                if (out.size() + (fast[code_point] == 1 ? static_cast<std::size_t>(len) : 1) > room) {
+                    break;
+                }
+                ++produced;
+            }
+            if (fast[code_point] == 1) {
+                out.append(source.data() + pos, static_cast<std::size_t>(len));
+            } else {
+                out.push_back(static_cast<char>(fast[code_point]));
+            }
+            pos += len;
+        }
+        if (pos == size) {
+            break;
         }
         if constexpr (with_offsets) {
             before = out.size();
