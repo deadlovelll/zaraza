@@ -486,23 +486,52 @@ const UnicodeNormalizer::FastOutputs& UnicodeNormalizer::fast_outputs() {
     return outputs;
 }
 
-// 0: needs the full path, 1: copied as is, otherwise the Latin letter it becomes
+// 0: needs the full path, 1: copied as is, otherwise the ASCII byte it becomes
 UnicodeNormalizer::FastOutputs UnicodeNormalizer::build_fast_outputs() {
     FastOutputs outputs{};
     for (char32_t code_point = 0x80; code_point < outputs.size(); ++code_point) {
         if (
             (code_point >= 0xD800 && code_point < 0xE000)
-            || classify_char({code_point, 0, 0}) != CharKind::Regular
             || is_regional_indicator(code_point)
             || diacritics_stripper.is_separate_letter_base(code_point)
         ) {
             continue;
         }
-        char latin = ConfusablesMapper::to_latin(code_point);
-        if (latin != 0) {
-            outputs[code_point] = static_cast<std::uint8_t>(latin);
-        } else if (lower(code_point) == code_point) {
+        CharKind kind = classify_char({code_point, 0, 0});
+        if (kind == CharKind::Regular) {
+            char latin = ConfusablesMapper::to_latin(code_point);
+            if (latin != 0) {
+                outputs[code_point] = static_cast<std::uint8_t>(latin);
+            } else if (lower(code_point) == code_point) {
+                outputs[code_point] = 1;
+            }
+            continue;
+        }
+        std::string output;
+        OutputBuffer out(output, 0);
+        switch (kind) {
+            case CharKind::Space:
+                out.push_back(' ');
+                break;
+            case CharKind::CaseFolding:
+                out = append_case_folded(out, code_point);
+                break;
+            case CharKind::Compatibility:
+                out = append_compatibility_form(out, code_point);
+                break;
+            case CharKind::Diacritic:
+                out = append_without_diacritics(out, code_point);
+                break;
+            default:
+                continue;
+        }
+        out.finish();
+        utf8proc_uint8_t source[4];
+        utf8proc_ssize_t length = utf8proc_encode_char(static_cast<utf8proc_int32_t>(code_point), source);
+        if (output == std::string_view(reinterpret_cast<const char*>(source), static_cast<std::size_t>(length))) {
             outputs[code_point] = 1;
+        } else if (output.size() == 1 && static_cast<unsigned char>(output[0]) >= 0x20) {
+            outputs[code_point] = static_cast<std::uint8_t>(output[0]);
         }
     }
     return outputs;
