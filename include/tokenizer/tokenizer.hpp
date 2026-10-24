@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -27,6 +28,7 @@ private:
         std::vector<Token>& tokens,
         std::size_t first
     );
+    bool ascii_word_mask(const std::uint8_t* bytes, std::uint64_t& word);
     bool is_word_char(char32_t code_point);
     bool is_single_letter(const std::string& text, const Token& token);
     bool is_spacing_separator(char c);

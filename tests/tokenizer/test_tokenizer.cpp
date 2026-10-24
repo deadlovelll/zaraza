@@ -118,3 +118,27 @@ TEST_F(TokenizerTest, SpacedDigitsAndLongerPiecesNotJoined) {
     EXPECT_EQ(texts("1 2 3"), (std::vector<std::string>{"1", "2", "3"}));
     EXPECT_EQ(texts("fu ck"), (std::vector<std::string>{"fu", "ck"}));
 }
+
+TEST_F(TokenizerTest, AsciiBlocksSplitAtClassEdges) {
+    std::string text;
+    std::vector<std::string> expected;
+    for (int i = 0; i < 20; ++i) {
+        text += "/09:@AZ[`az{ ";
+        expected.insert(expected.end(), {"09", "AZ", "az"});
+    }
+    text += std::string(150, 'x') + " ";
+    expected.push_back(std::string(150, 'x'));
+    EXPECT_EQ(texts(text), expected);
+}
+
+TEST_F(TokenizerTest, LongNonAsciiTextStopsAtEnd) {
+    std::string text;
+    for (int i = 0; i < 1000; ++i) {
+        text += "мир ";
+    }
+    std::size_t size = text.size();
+    // Letters left past size() catch reads beyond the end
+    text.append(8192, 'z');
+    text.resize(size);
+    EXPECT_EQ(texts(text), std::vector<std::string>(1000, "мир"));
+}
