@@ -38,12 +38,19 @@ void SwearWordHider::find_profane_tokens(
             node = next_node(trie, node, code_point);
             i += len;
         }
-        for (const Match& match : trie.nodes[node].matches) {
+        for (
+            const Match& match : 
+            reinterpret_cast<const Node*>(reinterpret_cast<const char*>(trie.nodes.data()) + node)->matches
+        ) {
             std::size_t matched = matched_tokens(text, tokens, k, match);
             if (matched == 0) {
                 continue;
             }
-            while (!search.profane_tokens.empty() && search.profane_tokens.back().start >= search.dropped + tokens[k + 1 - matched].start) {
+            while (
+                !search.profane_tokens.empty() 
+                && search.profane_tokens.back().start >= 
+                search.dropped + tokens[k + 1 - matched].start
+            ) {
                 search.profane_tokens.pop_back();
             }
             for (std::size_t m = k + 1 - matched; m <= k; ++m) {
@@ -74,18 +81,20 @@ std::string SwearWordHider::hide_tokens(
 }
 
 std::uint32_t SwearWordHider::next_node(const Trie& trie, std::uint32_t node, char32_t ch) {
+    const char* base = reinterpret_cast<const char*>(trie.nodes.data());
     if (ch < trie.columns.size()) {
-        return trie.nodes[node].ascii[trie.columns[ch]];
+        return *reinterpret_cast<const std::uint32_t*>(base + sizeof(std::uint32_t) * trie.columns[ch] + node);
     }
     for (;;) {
-        std::unordered_map<char32_t, std::uint32_t>::const_iterator child = trie.nodes[node].others.find(ch);
-        if (child != trie.nodes[node].others.end()) {
+        const Node& current = *reinterpret_cast<const Node*>(base + node);
+        std::unordered_map<char32_t, std::uint32_t>::const_iterator child = current.others.find(ch);
+        if (child != current.others.end()) {
             return child->second;
         }
         if (node == 0) {
             return 0;
         }
-        node = trie.nodes[node].fail;
+        node = current.fail;
     }
 }
 

@@ -99,6 +99,17 @@ void TrieLoader::build() {
             q.push(edge.second);
         }
     }
+    // shortcut: byte offsets for the matcher, up to ~19M nodes
+    const std::uint32_t node_size = sizeof(Node);
+    for (Node& node : nodes) {
+        for (std::uint32_t& next : node.ascii) {
+            next *= node_size;
+        }
+        for (std::pair<const char32_t, std::uint32_t>& edge : node.others) {
+            edge.second *= node_size;
+        }
+        node.fail *= node_size;
+    }
 }
 
 std::uint8_t TrieLoader::column(char32_t ch) {

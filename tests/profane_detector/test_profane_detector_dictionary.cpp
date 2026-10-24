@@ -84,6 +84,11 @@ TEST(ProfaneDetectorDictionaryTest, DigitsInDictionaryWordFound) {
     EXPECT_EQ(detector.censor("asshole a55", '*'), "asshole a55");
 }
 
+TEST(ProfaneDetectorDictionaryTest, NonAsciiWordAfterFailLinkFound) {
+    ProfaneDetector detector = make_detector("ab cd ef\ncd жук\n");
+    EXPECT_EQ(detector.censor("ab cd жук", '*'), "ab ** ***");
+}
+
 TEST(ProfaneDetectorDictionaryTest, WordsAcrossStreamingBatchesFound) {
     ProfaneDetector detector = make_detector("fuck\nсука\nson of a bitch\nก่\n");
     std::string tail;
