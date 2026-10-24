@@ -12,7 +12,7 @@
 class TrieLoader {
 public:
     TrieLoader(const std::unordered_set<std::string>& words)
-        : nodes(1)
+        : nodes(1), filter(words)
     {
         nodes.reserve(count_nodes(words));
         add_columns();
@@ -24,6 +24,7 @@ private:
     std::vector<Node> nodes;
     std::array<std::uint8_t, 128> columns{};
     std::size_t max_spaces = 0;
+    WordFilter filter;
     std::size_t count_nodes(const std::unordered_set<std::string>& words);
     void add_columns();
     void add_words(const std::unordered_set<std::string>& words);

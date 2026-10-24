@@ -8,7 +8,7 @@
 #include <utf8proc.h>
 
 Trie TrieLoader::get_trie() {
-    return {std::move(nodes), columns, max_spaces};
+    return {std::move(nodes), columns, max_spaces, std::move(filter)};
 }
 
 std::size_t TrieLoader::count_nodes(const std::unordered_set<std::string>& words) {

@@ -101,8 +101,48 @@ TEST(ProfaneDetectorDictionaryTest, WordsAcrossStreamingBatchesFound) {
             padding += "ab ";
         }
         EXPECT_EQ(detector.censor(padding + "s o n of a bitch" + tail, '*'), padding + "***** ** * *****" + tail) << offset;
+        EXPECT_EQ(detector.censor(padding + "son of a bitch" + tail, '*'), padding + "*** ** * *****" + tail) << offset;
         EXPECT_EQ(detector.censor(padding + "ก่ f u c k сука fuck" + tail, '*'), padding + "** ******* **** ****" + tail) << offset;
     }
+}
+
+TEST(ProfaneDetectorDictionaryTest, SkippedWordBreaksPhrase) {
+    ProfaneDetector detector = make_detector("hot\npocket\nhot pocket\n");
+    EXPECT_EQ(detector.censor("hot dog pocket", '*'), "*** dog ******");
+    EXPECT_EQ(detector.censor("hot pocket", '*'), "*** ******");
+    std::string tail;
+    while (tail.size() < 200000) {
+        tail += " ab";
+    }
+    for (std::size_t offset = 65520; offset < 65540; ++offset) {
+        std::string padding(offset % 3, 'x');
+        while (padding.size() < offset) {
+            padding += "ab ";
+        }
+        EXPECT_EQ(detector.censor(padding + "hot dog pocket" + tail, '*'), padding + "*** dog ******" + tail) << offset;
+    }
+}
+
+TEST(ProfaneDetectorDictionaryTest, PhraseAcrossTokenBlocksFound) {
+    ProfaneDetector detector = make_detector("son of a bitch\nfuck off\n");
+    for (std::size_t count = 56; count < 72; ++count) {
+        std::string padding;
+        for (std::size_t i = 0; i < count; ++i) {
+            padding += "ab ";
+        }
+        EXPECT_EQ(detector.censor(padding + "son of a bitch ab", '*'), padding + "*** ** * ***** ab") << count;
+        EXPECT_EQ(detector.censor(padding + "f.u.c.k off ab", '*'), padding + "******* *** ab") << count;
+    }
+}
+
+TEST(ProfaneDetectorDictionaryTest, LongDictionaryWordsFound) {
+    ProfaneDetector detector = make_detector("motherfucker\nmotherfuckingasshole\nfat motherfucking bastard\n");
+    EXPECT_EQ(detector.censor("motherfucker", '*'), "************");
+    EXPECT_EQ(detector.censor("you motherfucker!", '*'), "you ************!");
+    EXPECT_EQ(detector.censor("a motherfuckingasshole", '*'), "a ********************");
+    EXPECT_EQ(detector.censor("motherfuckingasshole ok", '*'), "******************** ok");
+    EXPECT_EQ(detector.censor("so fat motherfucking bastard ok", '*'), "so *** ************* ******* ok");
+    EXPECT_EQ(detector.censor("motherfuckingarsehole motherfuckers", '*'), "motherfuckingarsehole motherfuckers");
 }
 
 TEST(ProfaneDetectorDictionaryTest, WordsAfterManyStreamingBatchesFound) {

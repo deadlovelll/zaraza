@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "word_filter/word_filter.hpp"
+
 struct Match {
     std::size_t length;
     std::size_t spaces;
@@ -25,4 +27,5 @@ struct Trie {
     std::vector<Node> nodes;
     std::array<std::uint8_t, 128> columns{};
     std::size_t max_spaces = 0;
+    WordFilter filter;
 };

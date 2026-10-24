@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <bit>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -15,48 +16,62 @@ void SwearWordHider::find_profane_tokens(
 ) {
     const utf8proc_uint8_t* bytes = reinterpret_cast<const utf8proc_uint8_t*>(text.data());
     std::uint32_t node = search.node;
-    for (std::size_t k = search.carried; k < tokens.size(); ++k) {
-        node = next_node(trie, node, U' ');
-        const Token token = tokens[k];
-        for (std::size_t i = token.start; i < token.end;) {
-            if (bytes[i] == static_cast<utf8proc_uint8_t>(token.separator)) {
-                ++i;
-                continue;
+    std::size_t next = search.carried;
+    for (std::size_t block = search.carried; block < tokens.size(); block += 64) {
+        std::uint64_t keep = trie.filter.may_match(text, tokens, block);
+        while (keep != 0) {
+            std::size_t k = block + static_cast<std::size_t>(std::countr_zero(keep));
+            keep &= keep - 1;
+            // A skipped token can't be inside a match
+            if (k != next) {
+                node = 0;
             }
-            if (bytes[i] < 0x80) {
-                node = next_node(trie, node, bytes[i]);
-                ++i;
-                continue;
+            next = k + 1;
+            node = next_node(trie, node, U' ');
+            const Token token = tokens[k];
+            for (std::size_t i = token.start; i < token.end;) {
+                if (bytes[i] == static_cast<utf8proc_uint8_t>(token.separator)) {
+                    ++i;
+                    continue;
+                }
+                if (bytes[i] < 0x80) {
+                    node = next_node(trie, node, bytes[i]);
+                    ++i;
+                    continue;
+                }
+                // Inline UTF-8 decode, tokenizer already validated it
+                std::size_t len = bytes[i] >= 0xF0 ? 4 : bytes[i] >= 0xE0 ? 3 : 2;
+                // Lead byte bits, then 6 bits per continuation byte
+                char32_t code_point = bytes[i] & (0x7Fu >> len);
+                for (std::size_t j = 1; j < len; ++j) {
+                    code_point = (code_point << 6) | (bytes[i + j] & 0x3Fu);
+                }
+                node = next_node(trie, node, code_point);
+                i += len;
             }
-            // Inline UTF-8 decode, tokenizer already validated it
-            std::size_t len = bytes[i] >= 0xF0 ? 4 : bytes[i] >= 0xE0 ? 3 : 2;
-            // Lead byte bits, then 6 bits per continuation byte
-            char32_t code_point = bytes[i] & (0x7Fu >> len);
-            for (std::size_t j = 1; j < len; ++j) {
-                code_point = (code_point << 6) | (bytes[i + j] & 0x3Fu);
-            }
-            node = next_node(trie, node, code_point);
-            i += len;
-        }
-        for (
-            const Match& match : 
-            reinterpret_cast<const Node*>(reinterpret_cast<const char*>(trie.nodes.data()) + node)->matches
-        ) {
-            std::size_t matched = matched_tokens(text, tokens, k, match);
-            if (matched == 0) {
-                continue;
-            }
-            while (
-                !search.profane_tokens.empty() 
-                && search.profane_tokens.back().start >= 
-                search.dropped + tokens[k + 1 - matched].start
+            for (
+                const Match& match : 
+                reinterpret_cast<const Node*>(reinterpret_cast<const char*>(trie.nodes.data()) + node)->matches
             ) {
-                search.profane_tokens.pop_back();
-            }
-            for (std::size_t m = k + 1 - matched; m <= k; ++m) {
-                search.profane_tokens.push_back({search.dropped + tokens[m].start, search.dropped + tokens[m].end, tokens[m].separator});
+                std::size_t matched = matched_tokens(text, tokens, k, match);
+                if (matched == 0) {
+                    continue;
+                }
+                while (
+                    !search.profane_tokens.empty() 
+                    && search.profane_tokens.back().start >= 
+                    search.dropped + tokens[k + 1 - matched].start
+                ) {
+                    search.profane_tokens.pop_back();
+                }
+                for (std::size_t m = k + 1 - matched; m <= k; ++m) {
+                    search.profane_tokens.push_back({search.dropped + tokens[m].start, search.dropped + tokens[m].end, tokens[m].separator});
+                }
             }
         }
+    }
+    if (next != tokens.size()) {
+        node = 0;
     }
     search.node = node;
     search.carried = std::min(tokens.size(), trie.max_spaces);
