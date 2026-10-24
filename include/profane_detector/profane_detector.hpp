@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstddef>
+#include <span>
 #include <string>
+#include <string_view>
 #include <unordered_set>
 #include <vector>
 
@@ -19,8 +22,10 @@ public:
         TrieLoader trie_loader(words);
         this->trie = trie_loader.get_trie();
     }
-    std::string censor(const std::string &text, const char censor_char);
-    bool contains_profanity(const std::string &text);
+    std::string censor(std::string_view text, const char censor_char);
+    bool censor(std::string_view text, const char censor_char, std::string& censored);
+    std::size_t censor_inplace(std::span<char> text, const char censor_char);
+    bool contains_profanity(std::string_view text);
 private:
     Trie trie;
     SwearWordHider swear_word_hider;
@@ -28,8 +33,9 @@ private:
     UnicodeNormalizer unicode_normalizer;
     Tokenizer tokenizer;
 
+    std::vector<SourceSpan> find_spans(std::string_view text);
     void find_profane_tokens(
-        const std::string& text,
+        std::string_view text,
         ProfaneSearch& search,
         bool first_only
     );

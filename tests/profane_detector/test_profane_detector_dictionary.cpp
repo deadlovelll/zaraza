@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
 
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include "profane_detector/profane_detector.hpp"
 
@@ -169,4 +171,44 @@ TEST(ProfaneDetectorDictionaryTest, ContainsProfanity) {
     ProfaneDetector detector = make_detector("fuck\n");
     EXPECT_TRUE(detector.contains_profanity("F.U.C.K"));
     EXPECT_FALSE(detector.contains_profanity("hello"));
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorReportsWhetherTextChanged) {
+    ProfaneDetector detector = make_detector("fuck\n");
+    std::string censored = "untouched";
+    EXPECT_FALSE(detector.censor("hello there", '*', censored));
+    EXPECT_EQ(censored, "untouched");
+    EXPECT_TRUE(detector.censor("hello fuck", '*', censored));
+    EXPECT_EQ(censored, "hello ****");
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorInplaceMatchesCensor) {
+    ProfaneDetector detector = make_detector("fuck\nсука\nson of a bitch\nass\n");
+    std::string tail;
+    while (tail.size() < 200000) {
+        tail += " ab сука";
+    }
+    std::vector<std::string> texts = {
+        "",
+        "hello",
+        "fuck",
+        "you fuck off",
+        "Сука, fuck и СУКА",
+        "сука ok",
+        "aß s o n of a bitch f.u.c.k",
+        "сука" + tail,
+        tail + " fuck",
+    };
+    for (const std::string& text : texts) {
+        std::string buffer = text;
+        std::size_t size = detector.censor_inplace(buffer, '*');
+        EXPECT_EQ(buffer.substr(0, size), detector.censor(text, '*')) << text.substr(0, 40);
+    }
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorInplaceFitsWhenTokenEndsInsideExpansion) {
+    ProfaneDetector detector = make_detector("xa1\n");
+    std::string buffer = "xa\u2488";
+    std::size_t size = detector.censor_inplace(buffer, '*');
+    EXPECT_EQ(buffer.substr(0, size), "**\u2488");
 }

@@ -1,27 +1,53 @@
 #include "profane_detector/profane_detector.hpp"
 #include <cstddef>
+#include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
-std::string ProfaneDetector::censor(const std::string &text, const char censor_char) {
-    ProfaneSearch search;
-    find_profane_tokens(text, search, false);
-    if (search.profane_tokens.empty()) {
-        return text;
+std::string ProfaneDetector::censor(std::string_view text, const char censor_char) {
+    std::string censored;
+    if (!censor(text, censor_char, censored)) {
+        return std::string(text);
     }
-    std::vector<SourceSpan> spans = unicode_normalizer.map_to_source(text, std::move(search.profane_tokens), search.batch_starts);
-    return swear_word_hider.hide_tokens(text, spans, censor_char);
+    return censored;
 }
 
-bool ProfaneDetector::contains_profanity(const std::string &text) {
+bool ProfaneDetector::censor(std::string_view text, const char censor_char, std::string& censored) {
+    std::vector<SourceSpan> spans = find_spans(text);
+    if (spans.empty()) {
+        return false;
+    }
+    censored = swear_word_hider.hide_tokens(text, spans, censor_char);
+    return true;
+}
+
+std::size_t ProfaneDetector::censor_inplace(std::span<char> text, const char censor_char) {
+    std::vector<SourceSpan> spans = find_spans(std::string_view(text.data(), text.size()));
+    if (spans.empty()) {
+        return text.size();
+    }
+    return swear_word_hider.hide_tokens_inplace(text, spans, censor_char);
+}
+
+bool ProfaneDetector::contains_profanity(std::string_view text) {
     ProfaneSearch search;
     find_profane_tokens(text, search, true);
     return !search.profane_tokens.empty();
 }
 
+std::vector<SourceSpan> ProfaneDetector::find_spans(std::string_view text) {
+    ProfaneSearch search;
+    find_profane_tokens(text, search, false);
+    if (search.profane_tokens.empty()) {
+        return {};
+    }
+    return unicode_normalizer.map_to_source(text, std::move(search.profane_tokens), search.batch_starts);
+}
+
 void ProfaneDetector::find_profane_tokens(
-    const std::string& text,
+    std::string_view text,
     ProfaneSearch& search,
     bool first_only
 ) {

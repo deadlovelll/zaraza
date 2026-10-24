@@ -1,6 +1,9 @@
 #include <algorithm>
 #include <bit>
+#include <cstring>
+#include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -79,7 +82,7 @@ void SwearWordHider::find_profane_tokens(
 }
 
 std::string SwearWordHider::hide_tokens(
-    const std::string& text,
+    std::string_view text,
     const std::vector<SourceSpan>& spans,
     char censor_char
 ) {
@@ -93,6 +96,30 @@ std::string SwearWordHider::hide_tokens(
     }
     censored_text.append(text, copied);
     return censored_text;
+}
+
+std::size_t SwearWordHider::hide_tokens_inplace(
+    std::span<char> text,
+    const std::vector<SourceSpan>& spans,
+    char censor_char
+) {
+    std::size_t written = 0;
+    std::size_t copied = 0;
+    for (const SourceSpan& span : spans) {
+        if (written != copied) {
+            std::memmove(text.data() + written, text.data() + copied, span.start - copied);
+        }
+        written += span.start - copied;
+        // A token ending inside a multi-char expansion gets one star more than it has bytes
+        std::size_t stars = std::min(span.stars, span.end - written);
+        std::memset(text.data() + written, censor_char, stars);
+        written += stars;
+        copied = span.end;
+    }
+    if (written != copied) {
+        std::memmove(text.data() + written, text.data() + copied, text.size() - copied);
+    }
+    return written + text.size() - copied;
 }
 
 std::uint32_t SwearWordHider::next_node(const Trie& trie, std::uint32_t node, char32_t ch) {

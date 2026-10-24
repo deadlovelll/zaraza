@@ -2,7 +2,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "node/node.hpp"
@@ -19,7 +21,12 @@ public:
         ProfaneSearch& search
     );
     std::string hide_tokens(
-        const std::string& text,
+        std::string_view text,
+        const std::vector<SourceSpan>& spans,
+        char censor_char
+    );
+    std::size_t hide_tokens_inplace(
+        std::span<char> text,
         const std::vector<SourceSpan>& spans,
         char censor_char
     );
