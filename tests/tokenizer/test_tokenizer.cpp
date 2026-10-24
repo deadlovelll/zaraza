@@ -142,3 +142,8 @@ TEST_F(TokenizerTest, LongNonAsciiTextStopsAtEnd) {
     text.resize(size);
     EXPECT_EQ(texts(text), std::vector<std::string>(1000, "мир"));
 }
+
+TEST_F(TokenizerTest, NonAsciiLettersAndBrokenSequences) {
+    EXPECT_EQ(texts("aµb"), (std::vector<std::string>{"aµb"}));
+    EXPECT_EQ(texts(std::string("x\xC3" "Ay")), (std::vector<std::string>{"x", "Ay"}));
+}

@@ -36,13 +36,14 @@ std::size_t Tokenizer::split_words(
     std::vector<Token>& tokens
 ) {
     const std::size_t block_size = 64;
-    const std::size_t max_scalar_span = 4096;
+    const std::size_t max_scalar_span = 512;
     const utf8proc_uint8_t* bytes = reinterpret_cast<const utf8proc_uint8_t*>(text.data());
     const std::size_t limit = text.size();
     std::size_t token_start = from;
     bool in_token = false;
     std::size_t pos = from;
     std::size_t scalar_span = block_size;
+    const std::uint64_t* bmp_words = word_chars().data();
     while (pos < limit) {
         std::size_t scalar_end = limit;
         if (pos + block_size <= std::min(target, limit)) {
@@ -68,10 +69,31 @@ std::size_t Tokenizer::split_words(
         while (pos < scalar_end) {
             utf8proc_int32_t code_point = bytes[pos];
             utf8proc_ssize_t len = 1;
-            if (code_point >= 0x80) {
-                len = utf8proc_iterate(bytes + pos, static_cast<utf8proc_ssize_t>(limit - pos), &code_point);
+            bool word_char = false;
+            if (code_point < 0x80) [[likely]] {
+                word_char = is_word_char(static_cast<char32_t>(code_point));
+            } else {
+                len = 0;
+                if (code_point >= 0xC2 && code_point < 0xE0 && pos + 1 < limit && (bytes[pos + 1] & 0xC0) == 0x80) {
+                    code_point = ((code_point & 0x1F) << 6) | (bytes[pos + 1] & 0x3F);
+                    len = 2;
+                } else if (
+                    code_point >= 0xE0 && code_point < 0xF0 && pos + 2 < limit
+                    && (bytes[pos + 1] & 0xC0) == 0x80 && (bytes[pos + 2] & 0xC0) == 0x80
+                ) {
+                    utf8proc_int32_t decoded = ((code_point & 0x0F) << 12) | ((bytes[pos + 1] & 0x3F) << 6) | (bytes[pos + 2] & 0x3F);
+                    if (decoded >= 0x800 && (decoded < 0xD800 || decoded >= 0xE000)) {
+                        code_point = decoded;
+                        len = 3;
+                    }
+                }
+                if (len == 0) {
+                    len = utf8proc_iterate(bytes + pos, static_cast<utf8proc_ssize_t>(limit - pos), &code_point);
+                }
+                word_char = len > 0 && (
+                    code_point < 0x10000 ? (bmp_words[code_point / 64] >> (code_point % 64)) & 1 : is_word_char(static_cast<char32_t>(code_point))
+                );
             }
-            bool word_char = len > 0 && is_word_char(static_cast<char32_t>(code_point));
             if (word_char && !in_token) {
                 token_start = pos;
                 in_token = true;
@@ -189,4 +211,19 @@ bool Tokenizer::is_single_letter(const std::string& text, const Token& token) {
 
 bool Tokenizer::is_spacing_separator(char c) {
     return c == ' ' || c == '.' || c == '-' || c == '_' || c == '*';
+}
+
+const Tokenizer::WordChars& Tokenizer::word_chars() {
+    static const WordChars chars = build_word_chars();
+    return chars;
+}
+
+Tokenizer::WordChars Tokenizer::build_word_chars() {
+    WordChars chars{};
+    for (char32_t code_point = 0; code_point < 0x10000; ++code_point) {
+        if (is_word_char(code_point)) {
+            chars[code_point / 64] |= std::uint64_t{1} << (code_point % 64);
+        }
+    }
+    return chars;
 }

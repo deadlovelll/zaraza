@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -30,6 +31,9 @@ private:
     );
     bool ascii_word_mask(const std::uint8_t* bytes, std::uint64_t& word);
     bool is_word_char(char32_t code_point);
+    using WordChars = std::array<std::uint64_t, 0x10000 / 64>;
+    const WordChars& word_chars();
+    WordChars build_word_chars();
     bool is_single_letter(const std::string& text, const Token& token);
     bool is_spacing_separator(char c);
 };
