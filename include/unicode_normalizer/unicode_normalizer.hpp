@@ -58,4 +58,5 @@ private:
     char32_t last_code_point(std::string_view text);
     char32_t lower(char32_t code_point);
     char lower_ascii(char c);
+    bool lower_ascii_block(const char* bytes, char* lowered);
 };

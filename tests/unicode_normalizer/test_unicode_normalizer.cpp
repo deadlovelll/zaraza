@@ -426,6 +426,26 @@ TEST_F(UnicodeNormalizerTest, SourceSpansPointToOriginalCharacters) {
     EXPECT_EQ(normalizer.map_to_source(decomposed, {{0, 3, '\0'}}, {}), (std::vector<SourceSpan>{{0, 6, 2}}));
 }
 
+TEST_F(UnicodeNormalizerTest, BatchesWithAsciiBlocksMatchWholeText) {
+    std::string ascii;
+    for (int i = 0; i < 20; ++i) {
+        ascii += "@AZ[`az{ ";
+    }
+    std::vector<std::string> texts = {ascii, "\u0301" + ascii};
+    for (std::size_t before : {63u, 64u, 65u, 128u}) {
+        for (const std::string& piece : {"\u0301", "\u0E48", "\u00DF", "\uFB01", "\U0001F1FA\U0001F1F8", "\xff", "\u0438\u0306"}) {
+            texts.push_back(std::string(before, 'A') + piece + std::string(70, 'B'));
+        }
+    }
+    for (const std::string& text : texts) {
+        std::string batched;
+        for (std::size_t pos = 0; pos < text.size();) {
+            pos = normalizer.normalize_batch(text, pos, batched);
+        }
+        EXPECT_EQ(batched, normalizer.normalize(text)) << text;
+    }
+}
+
 TEST_F(UnicodeNormalizerTest, SourceSpansFromBatchStartsMatchWholeText) {
     std::string text = "Ｆu​ß fuß";
     std::vector<Token> tokens = {{0, 4, '\0'}, {5, 9, '\0'}};

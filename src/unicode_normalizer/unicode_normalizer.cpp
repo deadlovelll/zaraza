@@ -1,6 +1,8 @@
 #include "unicode_normalizer/unicode_normalizer.hpp"
 #include "confusables_mapper/confusables_mapper.hpp"
 
+#include <cstring>
+
 #include <utf8proc.h>
 
 std::string UnicodeNormalizer::normalize(std::string_view text) {
@@ -13,15 +15,44 @@ std::size_t UnicodeNormalizer::normalize_batch(
     std::string& normalized
 ) {
     const std::size_t batch_size = 65536;
+    const std::size_t block_size = 64;
+    const std::size_t max_stride = 4096;
     std::size_t to = std::min(text.size(), from + batch_size);
     while (to < text.size() && !is_batch_start(text, to)) {
         ++to;
     }
-    std::string batch = normalize(text.substr(from, to - from));
-    if (normalized.empty()) {
-        normalized.swap(batch);
-    } else {
-        normalized += batch;
+    std::size_t done = from;
+    std::size_t stride = block_size;
+    for (std::size_t pos = from; done < to;) {
+        char lowered[block_size];
+        bool clean = pos + block_size <= to && lower_ascii_block(text.data() + pos, lowered);
+        if (!clean && pos + block_size <= to) {
+            // Back off on non-ASCII text
+            pos += stride;
+            stride = std::min(2 * stride, max_stride);
+            continue;
+        }
+        std::size_t end = clean ? pos : to;
+        if (done < end) {
+            // A mark after a lowered block needs the letter before it
+            if (done > from && !is_batch_start(text, done)) {
+                normalized.pop_back();
+                --done;
+            }
+            std::string batch = normalize(text.substr(done, end - done));
+            if (normalized.empty()) {
+                normalized.swap(batch);
+            } else {
+                normalized += batch;
+            }
+            done = end;
+        }
+        if (clean) {
+            stride = block_size;
+            normalized.append(lowered, block_size);
+            pos += block_size;
+            done = pos;
+        }
     }
     return to;
 }
@@ -380,4 +411,25 @@ char UnicodeNormalizer::lower_ascii(char c) {
         return static_cast<char>(c - 'A' + 'a');
     }
     return c;
+}
+
+bool UnicodeNormalizer::lower_ascii_block(const char* bytes, char* lowered) {
+    const std::uint64_t ones = 0x0101010101010101, high_bits = 0x8080808080808080;
+    std::uint64_t chunks[8];
+    std::memcpy(chunks, bytes, sizeof(chunks));
+    std::uint64_t seen = 0;
+    // here we add each byte to the seen bits with OR
+    // then, at the IF check, if seen has any non-ASCII char (>= 0x80), it will do an early return
+    for (std::uint64_t chunk : chunks) {
+        seen |= chunk;
+    }
+    if ((seen & high_bits) != 0) {
+        return false;
+    }
+    for (std::uint64_t& chunk : chunks) {
+        std::uint64_t upper = (chunk + (0x80 - 'A') * ones) & ~(chunk + (0x80 - 'Z' - 1) * ones) & high_bits;
+        chunk |= upper >> 2;
+    }
+    std::memcpy(lowered, chunks, sizeof(chunks));
+    return true;
 }
