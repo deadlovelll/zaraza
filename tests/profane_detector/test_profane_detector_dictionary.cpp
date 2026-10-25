@@ -285,10 +285,12 @@ TEST(ProfaneDetectorDictionaryTest, CensorFileMatchesCensor) {
 
 static std::string utf16_bytes(const std::u16string& text, bool big_endian) {
     std::string bytes = big_endian ? "\xFE\xFF" : "\xFF\xFE";
+    bytes.reserve(bytes.size() + 2 * text.size());
     for (char16_t unit : text) {
         char high = static_cast<char>(unit >> 8);
         char low = static_cast<char>(unit & 0xFF);
-        bytes += big_endian ? std::string{high, low} : std::string{low, high};
+        bytes.push_back(big_endian ? high : low);
+        bytes.push_back(big_endian ? low : high);
     }
     return bytes;
 }
@@ -320,10 +322,51 @@ TEST(ProfaneDetectorDictionaryTest, CensorFileKeepsUtf16) {
     std::ofstream(path, std::ios::binary) << utf16_bytes(u"сука ok", false) + "x";
     detector.censor_file(path, '*');
     EXPECT_EQ(read_file(path), utf16_bytes(u"**** ok", false) + "x");
+    std::ofstream(path, std::ios::binary) << utf16_bytes(u"", false) + "x";
+    detector.censor_file(path, '*');
+    EXPECT_EQ(read_file(path), utf16_bytes(u"", false) + "x");
     std::string lone = utf16_bytes(std::u16string(u"fuck ") + char16_t(0xD800) + u"a", false);
     std::ofstream(path, std::ios::binary) << lone;
     EXPECT_THROW(detector.censor_file(path, '*'), std::invalid_argument);
     EXPECT_EQ(read_file(path), lone);
+    std::filesystem::remove(path);
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorFileSplitsLargeUtf16IntoChunks) {
+    ProfaneDetector detector = make_detector("fuck\nсука\n𠜎𠜱\nson of a bitch\n");
+    std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_utf16_chunks_test.txt";
+    std::u16string lines;
+    std::u16string censored_lines;
+    std::u16string phrases;
+    std::u16string censored_phrases;
+    std::u16string words;
+    std::u16string censored_words;
+    // longer than one 2 MB chunk, so the text is cut after a line break or a space
+    while (phrases.size() < 1100000) {
+        lines += u"ab сука fuck 𠜎𠜱\n";
+        censored_lines += u"ab **** **** **\n";
+        phrases += u"son of a bitch\n";
+        censored_phrases += u"*** ** * *****\n";
+        words += u"ab сука fuck 𠜎𠜱 ";
+        censored_words += u"ab **** **** ** ";
+    }
+    // no line break or space in the first chunk, and its end falls inside a surrogate pair
+    std::u16string pairs = u"x";
+    while (pairs.size() < 1600000) {
+        pairs += u"𠜎";
+    }
+    std::vector<std::pair<std::u16string, std::u16string>> cases = {
+        {lines, censored_lines},
+        {phrases, censored_phrases},
+        {words, censored_words},
+        {pairs + u" fuck", pairs + u" ****"},
+    };
+    for (std::size_t index = 0; index < cases.size(); ++index) {
+        std::ofstream(path, std::ios::binary) << utf16_bytes(cases[index].first, false);
+        std::size_t size = detector.censor_file(path, '*');
+        EXPECT_TRUE(read_file(path) == utf16_bytes(cases[index].second, false)) << "case " << index;
+        EXPECT_EQ(size, std::filesystem::file_size(path)) << "case " << index;
+    }
     std::filesystem::remove(path);
 }
 

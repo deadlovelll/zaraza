@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <span>
+#include <string>
 #include <string_view>
 
 #include "office_censor/office_censor.hpp"
@@ -18,6 +19,8 @@ public:
         const char censor_char
     );
 private:
+    static constexpr std::size_t utf16_chunk_bytes = 2 << 20;
+
     OfficeCensor office_censor;
     Utf16Converter utf16_converter;
 
@@ -39,4 +42,5 @@ private:
         bool big_endian,
         const char censor_char
     );
+    void keep_whole_lines(std::string& utf8);
 };

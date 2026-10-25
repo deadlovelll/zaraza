@@ -44,6 +44,7 @@ private:
     bool changed = false;
 
     void reject_forged_size(const mz_zip_archive_file_stat& stat);
+    void reject_low_disk_space(const std::filesystem::path& target);
     bool find(const std::string& name, mz_zip_archive_file_stat& stat);
     bool inflate(const mz_zip_archive_file_stat& stat, std::string& content);
     bool extract(const mz_zip_archive_file_stat& stat, std::string& content);

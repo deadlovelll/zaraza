@@ -90,7 +90,34 @@ std::size_t FileCensor::censor_utf16(
     bool big_endian,
     const char censor_char
 ) {
-    std::string utf8 = utf16_converter.to_utf8(text, big_endian);
-    utf8.resize(finder.censor_inplace(utf8, censor_char));
-    return utf16_converter.from_utf8(utf8, text, big_endian);
+    utf16_converter.validate(text, big_endian);
+    std::span<char> units = text.first(text.size() & ~std::size_t{1});
+    if (units.empty()) {
+        return text.size();
+    }
+    std::size_t read = 0;
+    std::size_t written = 0;
+    while (read < units.size()) {
+        std::span<char> chunk = units.subspan(read, std::min(units.size() - read, utf16_chunk_bytes));
+        bool last = read + chunk.size() == units.size();
+        std::string utf8 = utf16_converter.to_utf8(chunk, big_endian);
+        if (!last) {
+            keep_whole_lines(utf8);
+        }
+        read += utf16_converter.utf16_size(utf8);
+        utf8.resize(finder.censor_inplace(utf8, censor_char));
+        std::span<char> target = last ? text.subspan(written) : text.subspan(written, read - written);
+        written += utf16_converter.from_utf8(utf8, target, big_endian);
+    }
+    return written;
+}
+
+void FileCensor::keep_whole_lines(std::string& utf8) {
+    std::size_t cut = utf8.rfind('\n');
+    if (cut == std::string::npos) {
+        cut = utf8.rfind(' ');
+    }
+    if (cut != std::string::npos) {
+        utf8.resize(cut + 1);
+    }
 }

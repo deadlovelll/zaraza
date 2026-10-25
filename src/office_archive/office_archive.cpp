@@ -51,6 +51,7 @@ std::size_t OfficeArchive::save() {
     std::filesystem::path target = std::filesystem::canonical(path);
     std::filesystem::path temp = target;
     temp += ".tmp";
+    reject_low_disk_space(target);
     try {
         std::size_t size = write_archive(temp);
         close();
@@ -61,6 +62,17 @@ std::size_t OfficeArchive::save() {
         std::error_code ignored;
         std::filesystem::remove(temp, ignored);
         throw;
+    }
+}
+
+// fail before writing gigabytes if the censored copy cannot fit next to the original
+void OfficeArchive::reject_low_disk_space(const std::filesystem::path& target) {
+    std::uintmax_t available = std::filesystem::space(target.parent_path()).available;
+    if (available < file.size()) {
+        throw std::runtime_error(
+            "censor_file: not enough free disk space for the censored copy: need about "
+            + std::to_string(file.size()) + " bytes, available " + std::to_string(available)
+        );
     }
 }
 

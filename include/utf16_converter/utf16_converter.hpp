@@ -7,7 +7,9 @@
 
 class Utf16Converter {
 public:
+    void validate(std::span<const char> text, bool big_endian);
     std::string to_utf8(std::span<const char> text, bool big_endian);
+    std::size_t utf16_size(std::string_view utf8);
     std::size_t from_utf8(
         std::string_view utf8,
         std::span<char> text,
