@@ -9,6 +9,7 @@ if(TEST_SOURCES)
         PRIVATE
             faster_profanity_lib
             gtest_main
+            miniz
     )
 
     include(GoogleTest)

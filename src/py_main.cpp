@@ -79,11 +79,13 @@ PYBIND11_MODULE(zaraza, z) {
                 } catch (const std::system_error& error) {
                     py::object filename = py::cast(path);
 #ifdef _WIN32
-                    PyErr_SetExcFromWindowsErrWithFilenameObject(PyExc_OSError, error.code().value(), filename.ptr());
-#else
+                    if (error.code().category() == std::system_category()) {
+                        PyErr_SetExcFromWindowsErrWithFilenameObject(PyExc_OSError, error.code().value(), filename.ptr());
+                        throw py::error_already_set();
+                    }
+#endif
                     errno = error.code().value();
                     PyErr_SetFromErrnoWithFilenameObject(PyExc_OSError, filename.ptr());
-#endif
                     throw py::error_already_set();
                 }
             },

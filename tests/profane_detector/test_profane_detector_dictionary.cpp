@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
@@ -10,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "miniz.h"
 #include "profane_detector/profane_detector.hpp"
 
 static ProfaneDetector make_detector(const std::string& words) {
@@ -24,6 +26,47 @@ static std::string read_file(const std::filesystem::path& path) {
     std::ifstream file(path, std::ios::binary);
     return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 }
+
+static void write_zip(
+    const std::filesystem::path& path,
+    const std::vector<std::pair<std::string, std::string>>& entries,
+    mz_uint level
+) {
+    mz_zip_archive zip{};
+    mz_zip_writer_init_heap(&zip, 0, 0);
+    for (const std::pair<std::string, std::string>& entry : entries) {
+        mz_zip_writer_add_mem(&zip, entry.first.c_str(), entry.second.data(), entry.second.size(), level);
+    }
+    void* data = nullptr;
+    std::size_t size = 0;
+    mz_zip_writer_finalize_heap_archive(&zip, &data, &size);
+    std::ofstream(path, std::ios::binary).write(static_cast<char*>(data), static_cast<std::streamsize>(size));
+    mz_free(data);
+    mz_zip_writer_end(&zip);
+}
+
+static std::string read_zip_entry(const std::filesystem::path& path, const std::string& name) {
+    std::string archive = read_file(path);
+    mz_zip_archive zip{};
+    mz_zip_reader_init_mem(&zip, archive.data(), archive.size(), 0);
+    std::size_t size = 0;
+    char* data = static_cast<char*>(mz_zip_reader_extract_file_to_heap(&zip, name.c_str(), &size, 0));
+    std::string entry = data == nullptr ? "" : std::string(data, size);
+    mz_free(data);
+    mz_zip_reader_end(&zip);
+    return entry;
+}
+
+static const std::string office_types =
+    R"(<?xml version="1.0" encoding="UTF-8" standalone="yes"?>)"
+    R"(<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">)"
+    R"(<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>)"
+    R"(<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>)"
+    R"(<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>)"
+    R"(<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>)"
+    R"(<Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>)"
+    R"(<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>)"
+    R"(</Types>)";
 
 TEST(ProfaneDetectorDictionaryTest, NonAsciiDictionaryWordFound) {
     ProfaneDetector detector = make_detector("сука\n");
@@ -284,14 +327,107 @@ TEST(ProfaneDetectorDictionaryTest, CensorFileKeepsUtf16) {
     std::filesystem::remove(path);
 }
 
-TEST(ProfaneDetectorDictionaryTest, CensorFileRejectsUtf32AndMissingFiles) {
+TEST(ProfaneDetectorDictionaryTest, CensorFileRejectsUnsupportedAndMissingFiles) {
     ProfaneDetector detector = make_detector("fuck\n");
-    std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_utf32_test.txt";
-    for (std::string utf32 : {std::string("\xFF\xFE\0\0" "f\0\0\0", 8), std::string("\0\0\xFE\xFF" "\0\0\0f", 8)}) {
-        std::ofstream(path, std::ios::binary) << utf32;
+    std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_unsupported_test.txt";
+    for (std::string unsupported : {
+        std::string("\xFF\xFE\0\0" "f\0\0\0", 8),
+        std::string("\0\0\xFE\xFF" "\0\0\0f", 8),
+        std::string("PK\x03\x04 fuck"),
+        std::string("%PDF-1.7 fuck"),
+        std::string("\xD0\xCF\x11\xE0 fuck"),
+    }) {
+        std::ofstream(path, std::ios::binary) << unsupported;
         EXPECT_THROW(detector.censor_file(path, '*'), std::invalid_argument);
-        EXPECT_EQ(read_file(path), utf32);
+        EXPECT_EQ(read_file(path), unsupported);
     }
+    write_zip(path, {{"a.txt", "fuck"}}, MZ_DEFAULT_LEVEL);
+    std::string plain_zip = read_file(path);
+    EXPECT_THROW(detector.censor_file(path, '*'), std::invalid_argument);
+    EXPECT_EQ(read_file(path), plain_zip);
+    write_zip(path, {{"[Content_Types].xml", office_types}, {"word/document.xml", "<w:p><w:r><w:t>fuck</w:t></w:r></w:p>"}}, MZ_DEFAULT_LEVEL);
+    std::string wrong_crc = read_file(path);
+    wrong_crc[wrong_crc.rfind("PK\x01\x02") + 16] ^= 1;
+    std::ofstream(path, std::ios::binary) << wrong_crc;
+    EXPECT_THROW(detector.censor_file(path, '*'), std::invalid_argument);
+    EXPECT_EQ(read_file(path), wrong_crc);
     std::filesystem::remove(path);
     EXPECT_THROW(detector.censor_file(path, '*'), std::system_error);
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorFileEditsOfficeText) {
+    ProfaneDetector detector = make_detector("fuck\nсука\n");
+    std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_office_test.docx";
+    std::string image("\x89PNG fuck \0\xFF", 12);
+    std::string properties = "<Properties><Company>fuck</Company></Properties>";
+    write_zip(path, {
+        {"[Content_Types].xml", office_types},
+        {"word/document.xml",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n<w:document xmlns:w=\"w\"><w:body>"
+            "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>you fu</w:t></w:r><w:r><w:t xml:space=\"preserve\">ck off</w:t></w:r></w:p>"
+            "<w:p><w:r><w:t>fu</w:t></w:r><w:r><w:tab/><w:t>ck</w:t></w:r><w:r><w:t xml:space=\"preserve\"> </w:t></w:r></w:p>"
+            "</w:body></w:document>"},
+        {"word/header1.xml", "<w:hdr xmlns:w=\"w\"><w:p><w:r><w:t xml:space=\"preserve\">сука </w:t></w:r></w:p></w:hdr>"},
+        {"xl/sharedStrings.xml", "<sst><si><t>fu</t></si><si><r><t>ck</t></r></si><si><r><t>fu</t></r><r><t>ck</t></r></si></sst>"},
+        {"xl/worksheets/sheet1.xml", "<worksheet><sheetData><row><c t=\"inlineStr\"><is><t>fuck</t></is></c></row></sheetData></worksheet>"},
+        {"ppt/slides/slide1.xml", "<p:sld xmlns:p=\"p\" xmlns:a=\"a\"><a:p><a:r><a:t>сука</a:t></a:r></a:p></p:sld>"},
+        {"word/media/image1.png", image},
+        {"docProps/app.xml", properties},
+    }, MZ_DEFAULT_LEVEL);
+    std::filesystem::permissions(path, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write);
+    std::filesystem::perms permissions = std::filesystem::status(path).permissions();
+    std::size_t size = detector.censor_file(path, '*');
+    EXPECT_EQ(size, std::filesystem::file_size(path));
+    EXPECT_EQ(std::filesystem::status(path).permissions(), permissions);
+    std::string document = read_zip_entry(path, "word/document.xml");
+    EXPECT_NE(document.find("<w:t>you **</w:t></w:r><w:r><w:t xml:space=\"preserve\">** off</w:t>"), std::string::npos) << document;
+    EXPECT_NE(document.find("<w:t>fu</w:t></w:r><w:r><w:tab/><w:t>ck</w:t></w:r><w:r><w:t xml:space=\"preserve\"> </w:t>"), std::string::npos) << document;
+    EXPECT_EQ(read_zip_entry(path, "word/header1.xml"), "<w:hdr xmlns:w=\"w\"><w:p><w:r><w:t xml:space=\"preserve\">**** </w:t></w:r></w:p></w:hdr>");
+    EXPECT_EQ(read_zip_entry(path, "xl/sharedStrings.xml"), "<sst><si><t>fu</t></si><si><r><t>ck</t></r></si><si><r><t>**</t></r><r><t>**</t></r></si></sst>");
+    EXPECT_EQ(read_zip_entry(path, "xl/worksheets/sheet1.xml"), "<worksheet><sheetData><row><c t=\"inlineStr\"><is><t>****</t></is></c></row></sheetData></worksheet>");
+    EXPECT_EQ(read_zip_entry(path, "ppt/slides/slide1.xml"), "<p:sld xmlns:p=\"p\" xmlns:a=\"a\"><a:p><a:r><a:t>****</a:t></a:r></a:p></p:sld>");
+    EXPECT_EQ(read_zip_entry(path, "word/media/image1.png"), image);
+    EXPECT_EQ(read_zip_entry(path, "docProps/app.xml"), properties);
+    EXPECT_FALSE(std::filesystem::exists(path.string() + ".tmp"));
+    std::filesystem::remove(path);
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorFileEditsStoredOfficeParts) {
+    ProfaneDetector detector = make_detector("fuck\n");
+    std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_stored_test.docx";
+    write_zip(path, {{"[Content_Types].xml", office_types}, {"word/document.xml", "<w:p><w:r><w:t>fuck</w:t></w:r></w:p>"}}, MZ_NO_COMPRESSION);
+    EXPECT_EQ(detector.censor_file(path, '*'), std::filesystem::file_size(path));
+    EXPECT_EQ(read_zip_entry(path, "word/document.xml"), "<w:p><w:r><w:t>****</w:t></w:r></w:p>");
+    std::filesystem::remove(path);
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorFileHandlesDeeplyNestedXml) {
+    ProfaneDetector detector = make_detector("fuck\n");
+    std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_deep_test.docx";
+    std::string xml = "<w:p>";
+    for (int depth = 0; depth < 100000; ++depth) {
+        xml += "<x>";
+    }
+    xml += "<w:t>fuck</w:t>";
+    for (int depth = 0; depth < 100000; ++depth) {
+        xml += "</x>";
+    }
+    xml += "</w:p>";
+    write_zip(path, {{"[Content_Types].xml", office_types}, {"word/document.xml", xml}}, MZ_DEFAULT_LEVEL);
+    detector.censor_file(path, '*');
+    EXPECT_NE(read_zip_entry(path, "word/document.xml").find("<w:t>****</w:t>"), std::string::npos);
+    std::filesystem::remove(path);
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorFileLeavesCleanOfficeFilesUntouched) {
+    ProfaneDetector detector = make_detector("fuck\n");
+    std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_clean_test.docx";
+    write_zip(path, {{"[Content_Types].xml", office_types}, {"word/document.xml", "<w:p><w:r><w:t>hello</w:t></w:r></w:p>"}}, MZ_DEFAULT_LEVEL);
+    std::string original = read_file(path);
+    std::filesystem::file_time_type modified = std::filesystem::last_write_time(path) - std::chrono::hours(1);
+    std::filesystem::last_write_time(path, modified);
+    EXPECT_EQ(detector.censor_file(path, '*'), original.size());
+    EXPECT_EQ(read_file(path), original);
+    EXPECT_EQ(std::filesystem::last_write_time(path), modified);
+    std::filesystem::remove(path);
 }

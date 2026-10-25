@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(faster_profanity LANGUAGES CXX)
+project(faster_profanity LANGUAGES C CXX)
 
 include(FetchContent)
 
@@ -37,8 +37,50 @@ target_compile_definitions(simdutf
         SIMDUTF_FEATURE_BASE64=0
 )
 
+add_library(miniz STATIC
+    third_party/miniz/miniz.c
+)
+
+target_include_directories(miniz
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/third_party/miniz
+)
+
+target_compile_definitions(miniz
+    PUBLIC
+        MINIZ_NO_ZLIB_COMPATIBLE_NAMES
+)
+
+add_library(libdeflate STATIC
+    third_party/libdeflate/lib/arm/cpu_features.c
+    third_party/libdeflate/lib/x86/cpu_features.c
+    third_party/libdeflate/lib/crc32.c
+    third_party/libdeflate/lib/deflate_compress.c
+    third_party/libdeflate/lib/deflate_decompress.c
+    third_party/libdeflate/lib/utils.c
+)
+
+target_include_directories(libdeflate
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/third_party/libdeflate
+)
+
+add_library(pugixml STATIC
+    third_party/pugixml/pugixml.cpp
+)
+
+target_include_directories(pugixml
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/third_party/pugixml
+)
+
 add_library(faster_profanity_lib
     src/profane_detector/profane_detector.cpp
+    src/profane_finder/profane_finder.cpp
+    src/file_censor/file_censor.cpp
+    src/office_censor/office_censor.cpp
+    src/office_archive/office_archive.cpp
+    src/utf16_converter/utf16_converter.cpp
     src/swear_word_hider/swear_word_hider.cpp
     src/censor_words_loader/censor_words_loader.cpp
     src/trie_loader/trie_loader.cpp
@@ -67,6 +109,9 @@ target_link_libraries(faster_profanity_lib
     PRIVATE
         utf8proc
         simdutf
+        miniz
+        libdeflate
+        pugixml
 )
 
 add_executable(faster_profanity
