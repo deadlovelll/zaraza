@@ -1,6 +1,7 @@
 #include <cerrno>
 #include <cstddef>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -25,7 +26,14 @@ PYBIND11_MODULE(zaraza, z) {
         R"doc(docs will be here)doc"
     )
         .def(
-            py::init<const std::string&, const std::string&>(),
+            py::init([](const std::string& lang, const std::string& custom_dictionary) {
+                if (!custom_dictionary.empty()) {
+                    return std::make_unique<ProfaneDetector>(lang, custom_dictionary);
+                }
+                std::filesystem::path module_path = py::module_::import("zaraza").attr("__file__").cast<std::filesystem::path>();
+                std::filesystem::path dictionary = module_path.parent_path() / "faster_profanity_data" / lang / "profanity_wordslist.txt";
+                return std::make_unique<ProfaneDetector>(lang, dictionary.string());
+            }),
             py::arg("lang") = "en",
             py::arg("custom_dictionary") = "",
             R"doc(docs will be here)doc"

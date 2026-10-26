@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(faster_profanity LANGUAGES C CXX)
 
-include(FetchContent)
+option(FASTER_PROFANITY_BUILD_TESTS "Build the unit tests with the vendored googletest" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -19,6 +19,7 @@ if(ipo_supported)
 endif()
 
 file(COPY ${CMAKE_SOURCE_DIR}/src/data DESTINATION ${CMAKE_BINARY_DIR}/)
+file(COPY ${CMAKE_SOURCE_DIR}/src/data/en/profanity_words/profanity_wordslist.txt DESTINATION ${CMAKE_BINARY_DIR}/faster_profanity_data/en)
 
 add_library(simdutf STATIC
     third_party/simdutf/simdutf.cpp
@@ -73,6 +74,20 @@ add_library(pugixml STATIC
 target_include_directories(pugixml
     PUBLIC
         ${PROJECT_SOURCE_DIR}/third_party/pugixml
+)
+
+add_library(utf8proc STATIC
+    third_party/utf8proc/utf8proc.c
+)
+
+target_include_directories(utf8proc
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/third_party/utf8proc
+)
+
+target_compile_definitions(utf8proc
+    PUBLIC
+        UTF8PROC_STATIC
 )
 
 find_package(Threads REQUIRED)
@@ -138,26 +153,8 @@ target_link_libraries(faster_profanity
         faster_profanity_lib
 )
 
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/refs/heads/main.zip
-)
-FetchContent_Declare(
-    pybind11
-    GIT_REPOSITORY https://github.com/pybind/pybind11.git
-    GIT_TAG        v3.1.0
-)
-
-FetchContent_Declare(
-    utf8proc
-    GIT_REPOSITORY https://github.com/JuliaStrings/utf8proc.git
-    GIT_TAG        v2.12.0
-)
-
 set(PYBIND11_FINDPYTHON NEW CACHE STRING "")
-FetchContent_MakeAvailable(pybind11)
-FetchContent_MakeAvailable(googletest)
-FetchContent_MakeAvailable(utf8proc)
+add_subdirectory(third_party/pybind11)
 
 pybind11_add_module(zaraza
     src/py_main.cpp
@@ -168,5 +165,19 @@ target_link_libraries(zaraza
         faster_profanity_lib
 )
 
-enable_testing()
-add_subdirectory(tests)
+install(TARGETS zaraza
+    LIBRARY DESTINATION .
+)
+
+install(FILES src/data/en/profanity_words/profanity_wordslist.txt
+    DESTINATION faster_profanity_data/en
+)
+
+if(FASTER_PROFANITY_BUILD_TESTS)
+    set(BUILD_GMOCK OFF)
+    set(INSTALL_GTEST OFF)
+    set(gtest_force_shared_crt ON)
+    add_subdirectory(third_party/googletest)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

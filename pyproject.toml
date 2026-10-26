@@ -1,0 +1,11 @@
+[build-system]
+requires = ["scikit-build-core>=1.1"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "zaraza"
+version = "0.1.0"
+requires-python = ">=3.9"
+
+[tool.scikit-build]
+build.targets = ["zaraza"]
