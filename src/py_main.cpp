@@ -1,10 +1,12 @@
 #include <cerrno>
 #include <cstddef>
 #include <filesystem>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 #include <pybind11/detail/common.h>
 #include <pybind11/pybind11.h>
@@ -103,6 +105,35 @@ PYBIND11_MODULE(zaraza, z) {
             R"doc(docs will be here)doc"
         )
         .def(
+            "censor_batch",
+            [](ProfaneDetector& detector, const py::list& texts, char censor_char, bool parallel) {
+                std::vector<std::string_view> views;
+                views.reserve(texts.size());
+                for (py::handle text : texts) {
+                    Py_ssize_t size = 0;
+                    const char* data = PyUnicode_AsUTF8AndSize(text.ptr(), &size);
+                    if (data == nullptr) {
+                        throw py::error_already_set();
+                    }
+                    views.emplace_back(data, static_cast<std::size_t>(size));
+                }
+                std::vector<std::optional<std::string>> censored = detector.censor_batch(views, censor_char, parallel);
+                py::list result(censored.size());
+                for (std::size_t index = 0; index < censored.size(); ++index) {
+                    if (censored[index]) {
+                        result[index] = py::str(*censored[index]);
+                    } else {
+                        result[index] = texts[index];
+                    }
+                }
+                return result;
+            },
+            py::arg("texts"),
+            py::arg("censor_char"),
+            py::arg("parallel") = false,
+            R"doc(docs will be here)doc"
+        )
+        .def(
             "set_num_threads",
             &ProfaneDetector::set_num_threads,
             py::arg("threads"),
@@ -111,6 +142,17 @@ PYBIND11_MODULE(zaraza, z) {
         .def(
             "get_num_threads",
             &ProfaneDetector::get_num_threads,
+            R"doc(docs will be here)doc"
+        )
+        .def(
+            "set_num_interop_threads",
+            &ProfaneDetector::set_num_interop_threads,
+            py::arg("threads"),
+            R"doc(docs will be here)doc"
+        )
+        .def(
+            "get_num_interop_threads",
+            &ProfaneDetector::get_num_interop_threads,
             R"doc(docs will be here)doc"
         );
 }

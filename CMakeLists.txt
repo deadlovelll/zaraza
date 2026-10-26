@@ -7,6 +7,7 @@ include(FetchContent)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -119,7 +120,6 @@ endif()
 
 target_link_libraries(faster_profanity_lib
     PUBLIC
-        pybind11::module
         taskflow
     PRIVATE
         utf8proc
@@ -158,6 +158,15 @@ set(PYBIND11_FINDPYTHON NEW CACHE STRING "")
 FetchContent_MakeAvailable(pybind11)
 FetchContent_MakeAvailable(googletest)
 FetchContent_MakeAvailable(utf8proc)
+
+pybind11_add_module(zaraza
+    src/py_main.cpp
+)
+
+target_link_libraries(zaraza
+    PRIVATE
+        faster_profanity_lib
+)
 
 enable_testing()
 add_subdirectory(tests)

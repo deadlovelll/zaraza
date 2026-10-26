@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -396,6 +397,37 @@ TEST(ProfaneDetectorDictionaryTest, ParallelCensorMatchesSerial) {
     EXPECT_TRUE(read_file(path) == serial);
     std::filesystem::remove(path);
     EXPECT_THROW(detector.set_num_threads(0), std::invalid_argument);
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorBatchMatchesCensor) {
+    ProfaneDetector detector = make_detector("fuck\nсука\nson of a bitch\n");
+    std::vector<std::string> texts;
+    for (std::size_t i = 0; i < 2000; ++i) {
+        texts.push_back("msg " + std::to_string(i) + (i % 3 == 0 ? " you fuck off" : " clean") + (i % 7 == 0 ? " сука" : ""));
+    }
+    std::string big;
+    while (big.size() < 1000000) {
+        big += "son of a\nbitch ok fuck ";
+    }
+    texts.push_back(big);
+    texts.push_back("");
+    std::vector<std::optional<std::string>> expected;
+    for (const std::string& text : texts) {
+        std::string censored;
+        if (detector.censor(text, '*', censored)) {
+            expected.push_back(censored);
+        } else {
+            expected.push_back(std::nullopt);
+        }
+    }
+    std::vector<std::string_view> views(texts.begin(), texts.end());
+    EXPECT_TRUE(detector.censor_batch(views, '*') == expected);
+    detector.set_num_interop_threads(4);
+    EXPECT_EQ(detector.get_num_interop_threads(), 4);
+    EXPECT_TRUE(detector.censor_batch(views, '*') == expected);
+    detector.set_num_threads(4);
+    EXPECT_TRUE(detector.censor_batch(views, '*', true) == expected);
+    EXPECT_THROW(detector.set_num_interop_threads(0), std::invalid_argument);
 }
 
 TEST(ProfaneDetectorDictionaryTest, CensorFileRejectsUnsupportedAndMissingFiles) {
