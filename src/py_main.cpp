@@ -30,7 +30,7 @@ PYBIND11_MODULE(zaraza, z) {
         )
         .def(
             "censor",
-            [](ProfaneDetector& detector, const py::str& text, char censor_char) -> py::object {
+            [](ProfaneDetector& detector, const py::str& text, char censor_char, bool parallel) -> py::object {
                 Py_ssize_t size = 0;
                 const char* data = PyUnicode_AsUTF8AndSize(text.ptr(), &size);
                 if (data == nullptr) {
@@ -38,18 +38,19 @@ PYBIND11_MODULE(zaraza, z) {
                 }
                 std::string_view view(data, static_cast<std::size_t>(size));
                 std::string censored;
-                if (!detector.censor(view, censor_char, censored)) {
+                if (!detector.censor(view, censor_char, censored, parallel)) {
                     return text;
                 }
                 return py::str(censored);
             },
             py::arg("text"),
             py::arg("censor_char"),
+            py::arg("parallel") = false,
             R"doc(docs will be here)doc"
         )
         .def(
             "censor_inplace",
-            [](ProfaneDetector& detector, const py::buffer& buffer, char censor_char) {
+            [](ProfaneDetector& detector, const py::buffer& buffer, char censor_char, bool parallel) {
                 std::size_t size = 0;
                 {
                     py::buffer_info info = buffer.request(true);
@@ -57,7 +58,7 @@ PYBIND11_MODULE(zaraza, z) {
                         throw py::value_error("censor_inplace needs a contiguous buffer of bytes");
                     }
                     std::span<char> text(static_cast<char*>(info.ptr), static_cast<std::size_t>(info.size));
-                    size = detector.censor_inplace(text, censor_char);
+                    size = detector.censor_inplace(text, censor_char, parallel);
                 }
                 if (
                     PyByteArray_Check(buffer.ptr())
@@ -69,13 +70,14 @@ PYBIND11_MODULE(zaraza, z) {
             },
             py::arg("buffer"),
             py::arg("censor_char"),
+            py::arg("parallel") = false,
             R"doc(docs will be here)doc"
         )
         .def(
             "censor_file",
-            [](ProfaneDetector& detector, const std::filesystem::path& path, char censor_char) {
+            [](ProfaneDetector& detector, const std::filesystem::path& path, char censor_char, bool parallel) {
                 try {
-                    return detector.censor_file(path, censor_char);
+                    return detector.censor_file(path, censor_char, parallel);
                 } catch (const std::system_error& error) {
                     py::object filename = py::cast(path);
 #ifdef _WIN32
@@ -91,12 +93,24 @@ PYBIND11_MODULE(zaraza, z) {
             },
             py::arg("path"),
             py::arg("censor_char"),
+            py::arg("parallel") = false,
             R"doc(docs will be here)doc"
         )
         .def(
             "contains_profanity",
             &ProfaneDetector::contains_profanity,
             py::arg("text"),
+            R"doc(docs will be here)doc"
+        )
+        .def(
+            "set_num_threads",
+            &ProfaneDetector::set_num_threads,
+            py::arg("threads"),
+            R"doc(docs will be here)doc"
+        )
+        .def(
+            "get_num_threads",
+            &ProfaneDetector::get_num_threads,
             R"doc(docs will be here)doc"
         );
 }

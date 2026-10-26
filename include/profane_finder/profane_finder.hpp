@@ -11,6 +11,8 @@
 #include "profane_search/profane_search.hpp"
 #include "source_span/source_span.hpp"
 #include "swear_word_hider/swear_word_hider.hpp"
+#include "taskflow/taskflow.hpp"
+#include "text_chunk/text_chunk.hpp"
 #include "tokenizer/tokenizer.hpp"
 #include "trie_loader/trie_loader.hpp"
 #include "unicode_normalizer/unicode_normalizer.hpp"
@@ -23,16 +25,28 @@ public:
         TrieLoader trie_loader(words);
         this->trie = trie_loader.get_trie();
     }
-    std::vector<SourceSpan> find_spans(std::string_view text);
+    std::vector<SourceSpan> find_spans(std::string_view text, tf::Executor* executor);
     bool contains_profanity(std::string_view text);
-    std::size_t censor_inplace(std::span<char> text, const char censor_char);
+    std::size_t censor_inplace(std::span<char> text, const char censor_char, tf::Executor* executor);
 private:
+    const std::size_t chunks_per_thread = 8;
+    const std::size_t min_chunk_bytes = 256 << 10;
+    const std::size_t chunk_overlap_bytes = 8 << 10;
+
     Trie trie;
     SwearWordHider swear_word_hider;
     CensorWordsLoader censor_words_loader;
     UnicodeNormalizer unicode_normalizer;
     Tokenizer tokenizer;
 
+    std::vector<SourceSpan> find_spans_serial(std::string_view text);
+    std::vector<SourceSpan> find_spans_parallel(std::string_view text, tf::Executor& executor);
+    std::vector<TextChunk> split_chunks(std::string_view text, std::size_t workers);
+    void find_chunk_spans(
+        std::string_view text,
+        const TextChunk& chunk,
+        std::vector<SourceSpan>& spans
+    );
     void find_profane_tokens(
         std::string_view text,
         ProfaneSearch& search,

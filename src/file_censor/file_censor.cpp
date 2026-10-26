@@ -32,7 +32,8 @@ bool FileCensor::is_office_archive(std::span<const char> text) {
 std::size_t FileCensor::censor_file(
     ProfaneFinder& finder,
     const std::filesystem::path& path,
-    const char censor_char
+    const char censor_char,
+    tf::Executor* executor
 ) {
     std::size_t length = static_cast<std::size_t>(std::filesystem::file_size(path));
     if (length == 0) {
@@ -42,9 +43,9 @@ std::size_t FileCensor::censor_file(
     std::span<char> text(file.data(), file.size());
     if (is_office_archive(text)) {
         file.unmap();
-        return censor_office(finder, path, censor_char);
+        return censor_office(finder, path, censor_char, executor);
     }
-    std::size_t size = censor_text(finder, text, censor_char);
+    std::size_t size = censor_text(finder, text, censor_char, executor);
     file.unmap();
     if (size != length) {
         std::filesystem::resize_file(path, size);
@@ -55,7 +56,8 @@ std::size_t FileCensor::censor_file(
 std::size_t FileCensor::censor_office(
     ProfaneFinder& finder,
     const std::filesystem::path& path,
-    const char censor_char
+    const char censor_char,
+    tf::Executor* executor
 ) {
     OfficeArchive archive(path);
     for (const std::string& name : office_censor.text_parts(archive)) {
@@ -63,7 +65,7 @@ std::size_t FileCensor::censor_office(
         if (!office_censor.load(archive, name, text)) {
             continue;
         }
-        std::vector<SourceSpan> spans = finder.find_spans(text.text);
+        std::vector<SourceSpan> spans = finder.find_spans(text.text, executor);
         if (!spans.empty()) {
             archive.replace(name, office_censor.hide(text, spans, censor_char));
         }
@@ -74,21 +76,23 @@ std::size_t FileCensor::censor_office(
 std::size_t FileCensor::censor_text(
     ProfaneFinder& finder,
     std::span<char> text,
-    const char censor_char
+    const char censor_char,
+    tf::Executor* executor
 ) {
     std::string_view head(text.data(), std::min<std::size_t>(text.size(), 4));
     reject_unsupported_format(head);
     if (head.starts_with("\xFF\xFE") || head.starts_with("\xFE\xFF")) {
-        return 2 + censor_utf16(finder, text.subspan(2), head.starts_with("\xFE\xFF"), censor_char);
+        return 2 + censor_utf16(finder, text.subspan(2), head.starts_with("\xFE\xFF"), censor_char, executor);
     }
-    return finder.censor_inplace(text, censor_char);
+    return finder.censor_inplace(text, censor_char, executor);
 }
 
 std::size_t FileCensor::censor_utf16(
     ProfaneFinder& finder,
     std::span<char> text,
     bool big_endian,
-    const char censor_char
+    const char censor_char,
+    tf::Executor* executor
 ) {
     utf16_converter.validate(text, big_endian);
     std::span<char> units = text.first(text.size() & ~std::size_t{1});
@@ -105,7 +109,7 @@ std::size_t FileCensor::censor_utf16(
             keep_whole_lines(utf8);
         }
         read += utf16_converter.utf16_size(utf8);
-        utf8.resize(finder.censor_inplace(utf8, censor_char));
+        utf8.resize(finder.censor_inplace(utf8, censor_char, executor));
         std::span<char> target = last ? text.subspan(written) : text.subspan(written, read - written);
         written += utf16_converter.from_utf8(utf8, target, big_endian);
     }

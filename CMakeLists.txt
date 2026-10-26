@@ -74,6 +74,20 @@ target_include_directories(pugixml
         ${PROJECT_SOURCE_DIR}/third_party/pugixml
 )
 
+find_package(Threads REQUIRED)
+
+add_library(taskflow INTERFACE)
+
+target_include_directories(taskflow
+    INTERFACE
+        ${PROJECT_SOURCE_DIR}/third_party/taskflow
+)
+
+target_link_libraries(taskflow
+    INTERFACE
+        Threads::Threads
+)
+
 add_library(faster_profanity_lib
     src/profane_detector/profane_detector.cpp
     src/profane_finder/profane_finder.cpp
@@ -106,6 +120,7 @@ endif()
 target_link_libraries(faster_profanity_lib
     PUBLIC
         pybind11::module
+        taskflow
     PRIVATE
         utf8proc
         simdutf

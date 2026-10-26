@@ -370,6 +370,34 @@ TEST(ProfaneDetectorDictionaryTest, CensorFileSplitsLargeUtf16IntoChunks) {
     std::filesystem::remove(path);
 }
 
+TEST(ProfaneDetectorDictionaryTest, ParallelCensorMatchesSerial) {
+    ProfaneDetector detector = make_detector("fuck\nсука\nson of a bitch\nass\n");
+    std::string text;
+    std::size_t line = 0;
+    while (text.size() < 6000000) {
+        text += "glass son of a\nbitch f u c k сука ";
+        text += std::string(line % 97, 'x') + " fuck😀ass";
+        text += line % 5 == 0 ? "\n" : " ";
+        ++line;
+    }
+    std::string serial = detector.censor(text, '*');
+    for (std::size_t threads : {2, 3, 8}) {
+        detector.set_num_threads(threads);
+        EXPECT_EQ(detector.get_num_threads(), threads);
+        EXPECT_TRUE(detector.censor(text, '*', true) == serial) << threads;
+        std::string buffer = text;
+        std::size_t size = detector.censor_inplace(buffer, '*', true);
+        EXPECT_TRUE(buffer.substr(0, size) == serial) << threads;
+        EXPECT_EQ(detector.censor("you fuck off", '*', true), "you **** off") << threads;
+    }
+    std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_parallel_test.txt";
+    std::ofstream(path, std::ios::binary) << text;
+    detector.censor_file(path, '*', true);
+    EXPECT_TRUE(read_file(path) == serial);
+    std::filesystem::remove(path);
+    EXPECT_THROW(detector.set_num_threads(0), std::invalid_argument);
+}
+
 TEST(ProfaneDetectorDictionaryTest, CensorFileRejectsUnsupportedAndMissingFiles) {
     ProfaneDetector detector = make_detector("fuck\n");
     std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_unsupported_test.txt";
