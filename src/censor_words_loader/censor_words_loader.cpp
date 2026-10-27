@@ -1,4 +1,6 @@
-#include <iostream>
+#include <cerrno>
+#include <format>
+#include <system_error>
 
 #include "censor_words_loader/censor_words_loader.hpp"
 
@@ -14,8 +16,7 @@ void CensorWordsLoader::load_censor_words(
     }
     std::ifstream file(path);
     if (!file.is_open()) {
-        std::cout << "no file found" << std::endl;
-        return;
+        throw std::system_error(errno, std::generic_category(), "cannot open the dictionary " + path);
     }
     std::string line;
     while (std::getline(file, line)) {
