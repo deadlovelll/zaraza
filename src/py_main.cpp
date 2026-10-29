@@ -48,7 +48,12 @@ PYBIND11_MODULE(zaraza, z) {
                 }
                 std::string_view view(data, static_cast<std::size_t>(size));
                 std::string censored;
-                if (!detector.censor(view, censor_char, censored, parallel)) {
+                bool changed = false;
+                {
+                    py::gil_scoped_release release;
+                    changed = detector.censor(view, censor_char, censored, parallel);
+                }
+                if (!changed) {
                     return text;
                 }
                 return py::str(censored);
@@ -68,6 +73,7 @@ PYBIND11_MODULE(zaraza, z) {
                         throw py::value_error("censor_inplace needs a contiguous buffer of bytes");
                     }
                     std::span<char> text(static_cast<char*>(info.ptr), static_cast<std::size_t>(info.size));
+                    py::gil_scoped_release release;
                     size = detector.censor_inplace(text, censor_char, parallel);
                 }
                 if (
@@ -87,6 +93,7 @@ PYBIND11_MODULE(zaraza, z) {
             "censor_file",
             [](ProfaneDetector& detector, const std::filesystem::path& path, char censor_char, bool parallel) {
                 try {
+                    py::gil_scoped_release release;
                     return detector.censor_file(path, censor_char, parallel);
                 } catch (const std::system_error& error) {
                     py::object filename = py::cast(path);
@@ -109,15 +116,17 @@ PYBIND11_MODULE(zaraza, z) {
         .def(
             "contains_profanity",
             &ProfaneDetector::contains_profanity,
+            py::call_guard<py::gil_scoped_release>(),
             py::arg("text"),
             R"doc(docs will be here)doc"
         )
         .def(
             "censor_batch",
             [](ProfaneDetector& detector, const py::list& texts, char censor_char, bool parallel) {
+                py::tuple items(texts);
                 std::vector<std::string_view> views;
-                views.reserve(texts.size());
-                for (py::handle text : texts) {
+                views.reserve(items.size());
+                for (py::handle text : items) {
                     Py_ssize_t size = 0;
                     const char* data = PyUnicode_AsUTF8AndSize(text.ptr(), &size);
                     if (data == nullptr) {
@@ -125,13 +134,17 @@ PYBIND11_MODULE(zaraza, z) {
                     }
                     views.emplace_back(data, static_cast<std::size_t>(size));
                 }
-                std::vector<std::optional<std::string>> censored = detector.censor_batch(views, censor_char, parallel);
+                std::vector<std::optional<std::string>> censored;
+                {
+                    py::gil_scoped_release release;
+                    censored = detector.censor_batch(views, censor_char, parallel);
+                }
                 py::list result(censored.size());
                 for (std::size_t index = 0; index < censored.size(); ++index) {
                     if (censored[index]) {
                         result[index] = py::str(*censored[index]);
                     } else {
-                        result[index] = texts[index];
+                        result[index] = items[index];
                     }
                 }
                 return result;
@@ -145,7 +158,8 @@ PYBIND11_MODULE(zaraza, z) {
             "set_num_threads",
             &ProfaneDetector::set_num_threads,
             py::arg("threads"),
-            R"doc(docs will be here)doc"
+            R"doc(Set the number of threads for parallel=True calls. Call it before the first
+parallel call: after that the thread count is fixed and this raises RuntimeError.)doc"
         )
         .def(
             "get_num_threads",
@@ -156,7 +170,8 @@ PYBIND11_MODULE(zaraza, z) {
             "set_num_interop_threads",
             &ProfaneDetector::set_num_interop_threads,
             py::arg("threads"),
-            R"doc(docs will be here)doc"
+            R"doc(Set the number of threads censor_batch spreads texts over. Call it before the first
+parallel call: after that the thread count is fixed and this raises RuntimeError.)doc"
         )
         .def(
             "get_num_interop_threads",

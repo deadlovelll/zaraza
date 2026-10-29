@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <span>
 #include <string>
@@ -27,6 +28,7 @@ public:
         bool parallel = false
     );
     bool contains_profanity(std::string_view text);
+    // not thread-safe: do not call get_num_* while another thread calls set_num_*
     void set_num_threads(std::size_t threads);
     std::size_t get_num_threads();
     void set_num_interop_threads(std::size_t threads);
@@ -37,7 +39,10 @@ private:
     FileCensor file_censor;
     std::unique_ptr<tf::Executor> executor;
     std::unique_ptr<tf::Executor> interop_executor;
+    std::unique_ptr<std::mutex> threads_mutex = std::make_unique<std::mutex>();
+    bool threads_started = false;
 
+    tf::Executor* use_pool(const std::unique_ptr<tf::Executor>& pool);
     void censor_batch_item(
         const std::vector<std::string_view>& texts,
         const char censor_char,

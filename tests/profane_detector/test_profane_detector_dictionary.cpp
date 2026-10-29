@@ -375,7 +375,8 @@ TEST(ProfaneDetectorDictionaryTest, CensorFileSplitsLargeUtf16IntoChunks) {
 }
 
 TEST(ProfaneDetectorDictionaryTest, ParallelCensorMatchesSerial) {
-    ProfaneDetector detector = make_detector("fuck\nсука\nson of a bitch\nass\n");
+    std::string words = "fuck\nсука\nson of a bitch\nass\n";
+    ProfaneDetector detector = make_detector(words);
     std::string text;
     std::size_t line = 0;
     while (text.size() < 6000000) {
@@ -386,20 +387,23 @@ TEST(ProfaneDetectorDictionaryTest, ParallelCensorMatchesSerial) {
     }
     std::string serial = detector.censor(text, '*');
     for (std::size_t threads : {2, 3, 8}) {
-        detector.set_num_threads(threads);
-        EXPECT_EQ(detector.get_num_threads(), threads);
-        EXPECT_TRUE(detector.censor(text, '*', true) == serial) << threads;
+        ProfaneDetector threaded = make_detector(words);
+        threaded.set_num_threads(threads);
+        EXPECT_EQ(threaded.get_num_threads(), threads);
+        EXPECT_TRUE(threaded.censor(text, '*', true) == serial) << threads;
         std::string buffer = text;
-        std::size_t size = detector.censor_inplace(buffer, '*', true);
+        std::size_t size = threaded.censor_inplace(buffer, '*', true);
         EXPECT_TRUE(buffer.substr(0, size) == serial) << threads;
-        EXPECT_EQ(detector.censor("you fuck off", '*', true), "you **** off") << threads;
+        EXPECT_EQ(threaded.censor("you fuck off", '*', true), "you **** off") << threads;
     }
+    detector.set_num_threads(8);
     std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_parallel_test.txt";
     std::ofstream(path, std::ios::binary) << text;
     detector.censor_file(path, '*', true);
     EXPECT_TRUE(read_file(path) == serial);
     std::filesystem::remove(path);
     EXPECT_THROW(detector.set_num_threads(0), std::invalid_argument);
+    EXPECT_THROW(detector.set_num_threads(2), std::runtime_error);
 }
 
 TEST(ProfaneDetectorDictionaryTest, CensorBatchMatchesCensor) {
@@ -426,11 +430,12 @@ TEST(ProfaneDetectorDictionaryTest, CensorBatchMatchesCensor) {
     std::vector<std::string_view> views(texts.begin(), texts.end());
     EXPECT_TRUE(detector.censor_batch(views, '*') == expected);
     detector.set_num_interop_threads(4);
+    detector.set_num_threads(4);
     EXPECT_EQ(detector.get_num_interop_threads(), 4);
     EXPECT_TRUE(detector.censor_batch(views, '*') == expected);
-    detector.set_num_threads(4);
     EXPECT_TRUE(detector.censor_batch(views, '*', true) == expected);
     EXPECT_THROW(detector.set_num_interop_threads(0), std::invalid_argument);
+    EXPECT_THROW(detector.set_num_interop_threads(2), std::runtime_error);
 }
 
 TEST(ProfaneDetectorDictionaryTest, CensorFileRejectsUnsupportedAndMissingFiles) {
