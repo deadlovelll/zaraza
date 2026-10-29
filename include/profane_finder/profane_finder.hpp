@@ -26,6 +26,7 @@ public:
         this->trie = trie_loader.get_trie();
     }
     std::vector<SourceSpan> find_spans(std::string_view text, tf::Executor* executor);
+    bool worth_splitting(std::size_t size);
     bool contains_profanity(std::string_view text);
     std::size_t censor_inplace(std::span<char> text, const char censor_char, tf::Executor* executor);
 private:

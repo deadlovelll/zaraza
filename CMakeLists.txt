@@ -232,6 +232,7 @@ add_subdirectory(third_party/pybind11)
 
 pybind11_add_module(zaraza
     src/py_main.cpp
+    src/python_errors/python_errors.cpp
 )
 
 target_link_libraries(zaraza

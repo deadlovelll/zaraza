@@ -390,16 +390,20 @@ TEST(ProfaneDetectorDictionaryTest, ParallelCensorMatchesSerial) {
         ProfaneDetector threaded = make_detector(words);
         threaded.set_num_threads(threads);
         EXPECT_EQ(threaded.get_num_threads(), threads);
-        EXPECT_TRUE(threaded.censor(text, '*', true) == serial) << threads;
+        EXPECT_TRUE(threaded.censor(text, '*') == serial) << threads;
         std::string buffer = text;
-        std::size_t size = threaded.censor_inplace(buffer, '*', true);
+        std::size_t size = threaded.censor_inplace(buffer, '*');
         EXPECT_TRUE(buffer.substr(0, size) == serial) << threads;
-        EXPECT_EQ(threaded.censor("you fuck off", '*', true), "you **** off") << threads;
+        EXPECT_EQ(threaded.censor("you fuck off", '*'), "you **** off") << threads;
     }
+    ProfaneDetector short_only = make_detector(words);
+    short_only.set_num_threads(4);
+    EXPECT_EQ(short_only.censor("you fuck off", '*'), "you **** off");
+    short_only.set_num_threads(2);
     detector.set_num_threads(8);
     std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_parallel_test.txt";
     std::ofstream(path, std::ios::binary) << text;
-    detector.censor_file(path, '*', true);
+    detector.censor_file(path, '*');
     EXPECT_TRUE(read_file(path) == serial);
     std::filesystem::remove(path);
     EXPECT_THROW(detector.set_num_threads(0), std::invalid_argument);
@@ -433,7 +437,6 @@ TEST(ProfaneDetectorDictionaryTest, CensorBatchMatchesCensor) {
     detector.set_num_threads(4);
     EXPECT_EQ(detector.get_num_interop_threads(), 4);
     EXPECT_TRUE(detector.censor_batch(views, '*') == expected);
-    EXPECT_TRUE(detector.censor_batch(views, '*', true) == expected);
     EXPECT_THROW(detector.set_num_interop_threads(0), std::invalid_argument);
     EXPECT_THROW(detector.set_num_interop_threads(2), std::runtime_error);
 }
@@ -559,6 +562,27 @@ TEST(ProfaneDetectorDictionaryTest, CensorFileSizesPdfStarsByTextMatrix) {
     std::filesystem::remove(path);
 }
 
+
+TEST(ProfaneDetectorDictionaryTest, CensorFilesReportsEveryFile) {
+    ProfaneDetector detector = make_detector("fuck\n");
+    detector.set_num_interop_threads(4);
+    std::filesystem::path folder = std::filesystem::temp_directory_path();
+    std::filesystem::path text = folder / "censor_files_test.txt";
+    std::filesystem::path pdf = folder / "censor_files_test.pdf";
+    std::filesystem::path missing = folder / "censor_files_missing.txt";
+    std::ofstream(text, std::ios::binary) << "you fuck off";
+    std::ofstream(pdf, std::ios::binary) << make_pdf("BT /F1 30 Tf 96 668 Td (you fuck off) Tj ET");
+    std::filesystem::remove(missing);
+    std::vector<std::exception_ptr> errors = detector.censor_files({text, pdf, missing, folder / "." / "censor_files_test.txt"}, '*');
+    ASSERT_EQ(errors.size(), 4);
+    EXPECT_FALSE(errors[0]);
+    EXPECT_FALSE(errors[1]);
+    EXPECT_THROW(std::rethrow_exception(errors[2]), std::system_error);
+    EXPECT_FALSE(errors[3]);
+    EXPECT_EQ(read_file(text), "you **** off");
+    std::filesystem::remove(text);
+    std::filesystem::remove(pdf);
+}
 TEST(ProfaneDetectorDictionaryTest, CensorFileEditsOfficeText) {
     ProfaneDetector detector = make_detector("fuck\nсука\n");
     std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_office_test.docx";

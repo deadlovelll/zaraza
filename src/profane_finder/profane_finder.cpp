@@ -5,10 +5,15 @@
 #include <utility>
 
 std::vector<SourceSpan> ProfaneFinder::find_spans(std::string_view text, tf::Executor* executor) {
-    if (executor != nullptr) {
+    if (executor != nullptr && worth_splitting(text.size())) {
         return find_spans_parallel(text, *executor);
     }
     return find_spans_serial(text);
+}
+
+// One chunk is serial work plus the pool's overhead
+bool ProfaneFinder::worth_splitting(std::size_t size) {
+    return size >= 2 * min_chunk_bytes;
 }
 
 std::vector<SourceSpan> ProfaneFinder::find_spans_parallel(std::string_view text, tf::Executor& executor) {

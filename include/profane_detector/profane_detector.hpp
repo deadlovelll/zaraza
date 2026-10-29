@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <exception>
 #include <filesystem>
 #include <memory>
 #include <mutex>
@@ -18,14 +19,17 @@
 class ProfaneDetector {
 public:
     ProfaneDetector(const std::string& lang, const std::string& custom_dictionary) : profane_finder(lang, custom_dictionary) {}
-    std::string censor(std::string_view text, const char censor_char, bool parallel = false);
-    bool censor(std::string_view text, const char censor_char, std::string& censored, bool parallel = false);
-    std::size_t censor_inplace(std::span<char> text, const char censor_char, bool parallel = false);
-    std::size_t censor_file(const std::filesystem::path& path, const char censor_char, bool parallel = false);
+    std::string censor(std::string_view text, const char censor_char);
+    bool censor(std::string_view text, const char censor_char, std::string& censored);
+    std::size_t censor_inplace(std::span<char> text, const char censor_char);
+    std::size_t censor_file(const std::filesystem::path& path, const char censor_char);
     std::vector<std::optional<std::string>> censor_batch(
         const std::vector<std::string_view>& texts,
-        const char censor_char,
-        bool parallel = false
+        const char censor_char
+    );
+    std::vector<std::exception_ptr> censor_files(
+        const std::vector<std::filesystem::path>& paths,
+        const char censor_char
     );
     bool contains_profanity(std::string_view text);
     // not thread-safe: do not call get_num_* while another thread calls set_num_*
@@ -43,11 +47,19 @@ private:
     bool threads_started = false;
 
     tf::Executor* use_pool(const std::unique_ptr<tf::Executor>& pool);
+    tf::Executor* pool_for(std::size_t size);
     void censor_batch_item(
         const std::vector<std::string_view>& texts,
         const char censor_char,
-        bool parallel,
         std::vector<std::optional<std::string>>& censored,
         std::size_t index
     );
+    void censor_files_item(
+        const std::vector<std::filesystem::path>& paths,
+        const std::vector<std::size_t>& first,
+        const char censor_char,
+        std::vector<std::exception_ptr>& errors,
+        std::size_t index
+    );
+    std::vector<std::size_t> first_occurrences(const std::vector<std::filesystem::path>& paths);
 };
