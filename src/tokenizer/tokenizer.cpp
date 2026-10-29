@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <bit>
 #include <cstring>
-#include <utility>
 
 #include <utf8proc.h>
 
@@ -148,7 +147,7 @@ void Tokenizer::join_spaced_letters(
         }
         if (end - i < 3) {
             if (kept != i) {
-                tokens[kept] = std::move(tokens[i]);
+                tokens[kept] = tokens[i];
             }
             ++kept;
             ++i;
