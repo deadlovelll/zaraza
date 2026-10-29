@@ -14,6 +14,10 @@ void CensorWordsLoader::load_censor_words(
     } else {
         path = custom_dicstionary;
     }
+    load_file(path);
+}
+
+void CensorWordsLoader::load_file(const std::string& path) {
     std::ifstream file(path);
     if (!file.is_open()) {
         throw std::system_error(errno, std::generic_category(), "cannot open the dictionary " + path);

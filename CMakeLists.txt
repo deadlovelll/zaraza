@@ -19,7 +19,11 @@ if(ipo_supported)
 endif()
 
 file(COPY ${CMAKE_SOURCE_DIR}/src/data DESTINATION ${CMAKE_BINARY_DIR}/)
-file(COPY ${CMAKE_SOURCE_DIR}/src/data/en/profanity_words/profanity_wordslist.txt DESTINATION ${CMAKE_BINARY_DIR}/faster_profanity_data/en)
+file(COPY
+    ${CMAKE_SOURCE_DIR}/src/data/en/profanity_words/profanity_wordslist.txt
+    ${CMAKE_SOURCE_DIR}/src/data/en/profanity_words/ambiguous_wordslist.txt
+    DESTINATION ${CMAKE_BINARY_DIR}/faster_profanity_data/en
+)
 
 add_library(simdutf STATIC
     third_party/simdutf/simdutf.cpp
@@ -256,7 +260,9 @@ elseif(UNIX)
     set_target_properties(zaraza PROPERTIES INSTALL_RPATH "\$ORIGIN")
 endif()
 
-install(FILES src/data/en/profanity_words/profanity_wordslist.txt
+install(FILES
+    src/data/en/profanity_words/profanity_wordslist.txt
+    src/data/en/profanity_words/ambiguous_wordslist.txt
     DESTINATION faster_profanity_data/en
 )
 

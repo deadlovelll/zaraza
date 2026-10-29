@@ -18,7 +18,11 @@
 
 class ProfaneDetector {
 public:
-    ProfaneDetector(const std::string& lang, const std::string& custom_dictionary) : profane_finder(lang, custom_dictionary) {}
+    ProfaneDetector(
+        const std::string& lang,
+        const std::string& custom_dictionary,
+        const std::string& ambiguous_dictionary = ""
+    ) : profane_finder(lang, custom_dictionary, ambiguous_dictionary) {}
     std::string censor(std::string_view text, const char censor_char);
     bool censor(std::string_view text, const char censor_char, std::string& censored);
     std::size_t censor_inplace(std::span<char> text, const char censor_char);

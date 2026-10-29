@@ -19,8 +19,15 @@
 
 class ProfaneFinder {
 public:
-    ProfaneFinder(const std::string& lang, const std::string& custom_dictionary) {
+    ProfaneFinder(
+        const std::string& lang,
+        const std::string& custom_dictionary,
+        const std::string& ambiguous_dictionary
+    ) {
         censor_words_loader.load_censor_words(lang, custom_dictionary);
+        if (!ambiguous_dictionary.empty()) {
+            censor_words_loader.load_file(ambiguous_dictionary);
+        }
         std::unordered_set<std::string> words = censor_words_loader.get_censor_words();
         TrieLoader trie_loader(words);
         this->trie = trie_loader.get_trie();

@@ -2,7 +2,7 @@ term	category	subcategory	destination	lang	severity	false_positive_risk	conteste
 nig-nog	hate	hate_race_anti_black	category	en	severe	false	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
 nig-nogs	hate	hate_race_anti_black	category	en	severe	false	false	https://en.wiktionary.org/wiki/nig-nog	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 nigs	hate	hate_race_anti_black	main	en	severe	false	false	https://github.com/NVIDIA/garak/blob/main/garak/data/profanity_en.csv	
-negress	hate	hate_race_anti_black	main	en	severe	false	false	https://en.wiktionary.org/wiki/negress	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
+negress	hate	hate_race_anti_black	ambiguous	en	severe	false	false	https://en.wiktionary.org/wiki/negress	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 negresses	hate	hate_race_anti_black	main	en	severe	false	false	https://github.com/hate-alert/HateXplain/blob/master/Data/dataset.json	MIT
 niggress	hate	hate_race_anti_black	main	en	severe	false	false	https://github.com/NVIDIA/garak/blob/main/garak/data/profanity_en.csv	
 moolinyan	hate	hate_race_anti_black	main	en	moderate	false	false	https://en.wiktionary.org/wiki/moolinyan	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
@@ -104,7 +104,7 @@ whitoids	hate	hate_race_anti_white	main	en	moderate	false	false	https://en.wikti
 paleass	hate	hate_race_anti_white	main	en	moderate	false	false	https://en.wiktionary.org/wiki/paleass	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 gubba	hate	hate_race_anti_white	category	en	mild	false	true	https://en.wikipedia.org/wiki/List_of_ethnic_slurs	CC BY-SA 4.0 (verify only)
 crackah	hate	hate_race_anti_white	main	en	mild	false	false	https://en.wiktionary.org/wiki/crackah	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
-gypo	hate	hate_ethnic_anti_roma_traveller	main	en	severe	false	false	https://en.wiktionary.org/wiki/gypo	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
+gypo	hate	hate_ethnic_anti_roma_traveller	ambiguous	en	severe	false	false	https://en.wiktionary.org/wiki/gypo	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 gypos	hate	hate_ethnic_anti_roma_traveller	main	en	severe	false	false	https://github.com/bvidgen/Dynamically-Generated-Hate-Speech-Dataset	CC BY 4.0 (stated in README)
 gyppy	hate	hate_ethnic_anti_roma_traveller	main	en	severe	false	false	https://en.wiktionary.org/wiki/gyppy	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 gyppies	hate	hate_ethnic_anti_roma_traveller	main	en	severe	false	false	https://en.wiktionary.org/wiki/gyppy	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
@@ -152,7 +152,7 @@ kyke	hate	hate_antisemitic_slurs	main	en	severe	false	false	https://huggingface.
 kikess	hate	hate_antisemitic_slurs	main	en	severe	false	false	https://github.com/hate-alert/HateXplain	MIT
 jewkike	hate	hate_antisemitic_slurs	main	en	severe	false	false	https://en.wiktionary.org/wiki/Jewkike	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 heeb	hate	hate_antisemitic_slurs	base	en	severe	false	true	https://en.wiktionary.org/wiki/heeb	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
-hymie	hate	hate_antisemitic_slurs	base	en	severe	true	false	https://en.wiktionary.org/wiki/Hymie	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
+hymie	hate	hate_antisemitic_slurs	ambiguous	en	severe	true	false	https://en.wiktionary.org/wiki/Hymie	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 sheenies	hate	hate_antisemitic_slurs	main	en	severe	false	false	https://en.wiktionary.org/wiki/sheenies	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 mockie	hate	hate_antisemitic_slurs	main	en	moderate	false	false	https://en.wiktionary.org/wiki/mockie	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 ikey mo	hate	hate_antisemitic_slurs	main	en	moderate	false	false	https://en.wiktionary.org/wiki/Ikey_Mo	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
@@ -222,7 +222,7 @@ buybull	hate	hate_religion_anti_christian	category	en	moderate	false	false	https
 religitard	hate	hate_religion_anti_christian	main	en	moderate	false	false	https://en.wiktionary.org/wiki/religitard	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 religitards	hate	hate_religion_anti_christian	main	en	moderate	false	false	https://en.wiktionary.org/wiki/religitard	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 isai	hate	hate_religion_anti_christian	foreign:ur	en	moderate	true	true	https://en.wiktionary.org/wiki/Isai	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
-taig	hate	hate_religion_sectarian	main	en	moderate	false	false	https://www.ipsos.com/sites/default/files/ct/news/documents/2021-09/20-093867-01%20Offensive%20Language%20QRG%20Public_0.pdf	© Ofcom 2021 (Ipsos MORI): reference only
+taig	hate	hate_religion_sectarian	ambiguous	en	moderate	false	false	https://www.ipsos.com/sites/default/files/ct/news/documents/2021-09/20-093867-01%20Offensive%20Language%20QRG%20Public_0.pdf	© Ofcom 2021 (Ipsos MORI): reference only
 taigs	hate	hate_religion_sectarian	main	en	moderate	false	false	https://en.wiktionary.org/wiki/taig	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 fenian bastard	hate	hate_religion_sectarian	main	en	severe	false	false	https://vlex.co.uk/vid/walls-v-brown-805244613	
 fenian bastards	hate	hate_religion_sectarian	main	en	severe	false	false	https://vlex.co.uk/vid/walls-v-brown-805244613	
@@ -306,7 +306,7 @@ israhelli	hate	hate_nationality_xenophobic	main	en	moderate	false	false	https://
 lebos	hate	hate_nationality_xenophobic	main	en	moderate	false	false	https://en.wiktionary.org/wiki/Lebos	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 mexcrement	hate	hate_nationality_xenophobic	main	en	severe	false	false	https://en.wiktionary.org/wiki/Mexcrement	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 americunts	hate	hate_nationality_xenophobic	main	en	severe	false	false	https://huggingface.co/datasets/ucberkeley-dlab/measuring-hate-speech	CC BY 4.0 (HF card)
-gypo	hate	hate_nationality_xenophobic	main	en	severe	false	false	https://github.com/bvidgen/Dynamically-Generated-Hate-Speech-Dataset	CC BY 4.0 (stated in README)
+gypo	hate	hate_nationality_xenophobic	ambiguous	en	severe	false	false	https://github.com/bvidgen/Dynamically-Generated-Hate-Speech-Dataset	CC BY 4.0 (stated in README)
 gypos	hate	hate_nationality_xenophobic	main	en	severe	false	false	https://github.com/bvidgen/Dynamically-Generated-Hate-Speech-Dataset	CC BY 4.0 (stated in README)
 rapeugee	hate	hate_immigration_status	category	en	severe	false	false	https://en.wiktionary.org/wiki/rapeugee	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 anchor baby	hate	hate_immigration_status	category	en	moderate	false	true	https://en.wiktionary.org/wiki/anchor_baby	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
@@ -403,12 +403,12 @@ arabs are terrorists	hate	hate_stereotype_trope_assertions	category	en	moderate	
 disabled people are useless	hate	hate_stereotype_trope_assertions	category	en	moderate	false	true	https://homes.cs.washington.edu/~msap/social-bias-frames/	CC BY 4.0 (LICENSE file inside SBIC.v2.tgz)
 all germans are nazis	hate	hate_stereotype_trope_assertions	category	en	moderate	false	true	https://homes.cs.washington.edu/~msap/social-bias-frames/	CC BY 4.0 (LICENSE file inside SBIC.v2.tgz)
 faggot	hate	hate_sexual_orientation	base	en	severe	false	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
-faggots	hate	hate_sexual_orientation	base	en	severe	false	false	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
-fag	hate	hate_sexual_orientation	base	en	moderate	true	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
-fags	hate	hate_sexual_orientation	base	en	moderate	true	false	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
-dyke	hate	hate_sexual_orientation	base	en	severe	true	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
-dykes	hate	hate_sexual_orientation	base	en	severe	true	false	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
-homo	hate	hate_sexual_orientation	base	en	moderate	true	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
+faggots	hate	hate_sexual_orientation	ambiguous	en	severe	false	false	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
+fag	hate	hate_sexual_orientation	ambiguous	en	moderate	true	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
+fags	hate	hate_sexual_orientation	ambiguous	en	moderate	true	false	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
+dyke	hate	hate_sexual_orientation	ambiguous	en	severe	true	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
+dykes	hate	hate_sexual_orientation	ambiguous	en	severe	true	false	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
+homo	hate	hate_sexual_orientation	ambiguous	en	moderate	true	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
 homos	hate	hate_sexual_orientation	base	en	moderate	false	false	https://github.com/bvidgen/Dynamically-Generated-Hate-Speech-Dataset	CC BY 4.0 (stated in README)
 batty boy	hate	hate_sexual_orientation	base	en	severe	false	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
 battyman	hate	hate_sexual_orientation	category	en	severe	false	false	https://en.wiktionary.org/wiki/battyman	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
@@ -422,7 +422,7 @@ butt pirates	hate	hate_sexual_orientation	main	en	severe	false	false	https://en.
 bum boy	hate	hate_sexual_orientation	category	en	severe	false	false	https://en.wiktionary.org/wiki/bum_boy	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 rugmuncher	hate	hate_sexual_orientation	category	en	severe	false	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
 muff diver	hate	hate_sexual_orientation	base	en	severe	false	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
-poove	hate	hate_sexual_orientation	main	en	moderate	false	false	https://en.wiktionary.org/wiki/poove	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
+poove	hate	hate_sexual_orientation	ambiguous	en	moderate	false	false	https://en.wiktionary.org/wiki/poove	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 lezza	hate	hate_sexual_orientation	main	en	moderate	false	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
 lezzy	hate	hate_sexual_orientation	main	en	moderate	false	false	https://en.wiktionary.org/wiki/lezzy	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 bull dyke	hate	hate_sexual_orientation	category	en	severe	false	true	https://en.wiktionary.org/wiki/bull_dyke	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
@@ -448,14 +448,14 @@ bi now, gay later	hate	hate_sexual_orientation	category	en	moderate	false	false	
 straggot	hate	hate_sexual_orientation	main	en	moderate	false	false	https://en.wiktionary.org/wiki/straggot	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 straggots	hate	hate_sexual_orientation	main	en	moderate	false	false	https://en.wiktionary.org/wiki/straggots	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 straightoid	hate	hate_sexual_orientation	main	en	mild	false	false	https://en.wiktionary.org/wiki/straightoid	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
-tranny	hate	hate_gender_identity	base	en	severe	true	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
-trannies	hate	hate_gender_identity	base	en	severe	true	false	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
-troon	hate	hate_gender_identity	base	en	severe	true	false	https://glaad.org/smsi/anti-lgbtq-online-hate-speech-disinformation-guide/	© GLAAD; reference only
+tranny	hate	hate_gender_identity	ambiguous	en	severe	true	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
+trannies	hate	hate_gender_identity	ambiguous	en	severe	true	false	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
+troon	hate	hate_gender_identity	ambiguous	en	severe	true	false	https://glaad.org/smsi/anti-lgbtq-online-hate-speech-disinformation-guide/	© GLAAD; reference only
 troons	hate	hate_gender_identity	base	en	severe	true	false	https://github.com/juliamendelsohn/dogwhistles/blob/main/data/glossary.tsv	MIT (GitHub repo LICENSE, 2023 Julia Mendelsohn); the project site dogwhistles.allen.ai states no licence
 shemale	hate	hate_gender_identity	base	en	severe	false	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
 shemales	hate	hate_gender_identity	base	en	severe	false	false	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
 she-male	hate	hate_gender_identity	category	en	severe	false	false	https://huggingface.co/datasets/mmathys/profanity/blob/main/profanity_en.csv	MIT
-he-she	hate	hate_gender_identity	base	en	severe	false	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
+he-she	hate	hate_gender_identity	ambiguous	en	severe	false	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
 she-he	hate	hate_gender_identity	category	en	severe	false	false	https://en.wiktionary.org/wiki/she-he	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 chick with a dick	hate	hate_gender_identity	base	en	severe	false	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
 chicks with dicks	hate	hate_gender_identity	main	en	severe	false	false	https://en.wiktionary.org/wiki/chick_with_a_dick	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
@@ -534,7 +534,7 @@ feminasty	hate	hate_misogynistic_slurs_tropes	category	en	moderate	false	false	h
 feminoid	hate	hate_misogynistic_slurs_tropes	category	en	moderate	false	false	https://en.wiktionary.org/wiki/feminoid	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 women's libber	hate	hate_misogynistic_slurs_tropes	category	en	mild	false	false	https://en.wiktionary.org/wiki/women's_libber	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 dumb blonde	hate	hate_misogynistic_slurs_tropes	category	en	mild	false	false	https://en.wiktionary.org/wiki/dumb_blonde	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
-bint	hate	hate_misogynistic_slurs_tropes	base	en	mild	false	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
+bint	hate	hate_misogynistic_slurs_tropes	ambiguous	en	mild	false	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
 pick-me girl	hate	hate_misogynistic_slurs_tropes	category	en	mild	false	false	https://en.wiktionary.org/wiki/pick-me_girl	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 cum dumpster	insults	slut_shaming_sexual_reputation	category	en	severe	false	false	https://en.wiktionary.org/wiki/cum_dumpster	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 cum dumpsters	insults	slut_shaming_sexual_reputation	category	en	severe	false	false	https://github.com/ellamguest/online-misogyny-eacl2021/blob/main/data/final_labels.csv	MIT
@@ -552,16 +552,16 @@ hussy	insults	slut_shaming_sexual_reputation	category	en	mild	false	false	https:
 hussies	insults	slut_shaming_sexual_reputation	category	en	mild	false	false	https://en.wiktionary.org/wiki/hussy	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 slapper	insults	slut_shaming_sexual_reputation	category	en	moderate	false	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
 slappers	insults	slut_shaming_sexual_reputation	category	en	moderate	false	false	https://en.wiktionary.org/wiki/slapper	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
-slag	insults	slut_shaming_sexual_reputation	base	en	moderate	true	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
-skank	insults	slut_shaming_sexual_reputation	base	en	moderate	true	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
-hoe	insults	slut_shaming_sexual_reputation	base	en	moderate	true	false	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
+slag	insults	slut_shaming_sexual_reputation	ambiguous	en	moderate	true	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
+skank	insults	slut_shaming_sexual_reputation	ambiguous	en	moderate	true	false	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
+hoe	insults	slut_shaming_sexual_reputation	ambiguous	en	moderate	true	false	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
 walking mattress	insults	slut_shaming_sexual_reputation	category	en	severe	false	false	https://en.wiktionary.org/wiki/walking_mattress	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 lightskirt	insults	slut_shaming_sexual_reputation	category	en	mild	false	false	https://en.wiktionary.org/wiki/lightskirt	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 loose woman	insults	slut_shaming_sexual_reputation	category	en	mild	false	false	https://huggingface.co/datasets/mmathys/profanity/blob/main/profanity_en.csv	MIT
 slore	insults	slut_shaming_sexual_reputation	main	en	moderate	false	false	https://en.wiktionary.org/wiki/slore	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 hoochie	insults	slut_shaming_sexual_reputation	category	en	moderate	false	false	https://en.wiktionary.org/wiki/hoochie	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 hoochie mama	insults	slut_shaming_sexual_reputation	category	en	moderate	false	false	https://en.wiktionary.org/wiki/hoochie_mama	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
-thot	insults	slut_shaming_sexual_reputation	base	en	moderate	true	false	https://en.wiktionary.org/wiki/thot	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
+thot	insults	slut_shaming_sexual_reputation	ambiguous	en	moderate	true	false	https://en.wiktionary.org/wiki/thot	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 slattern	insults	slut_shaming_sexual_reputation	category	en	mild	false	false	https://en.wiktionary.org/wiki/slattern	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 cock tease	insults	slut_shaming_sexual_reputation	category	en	moderate	false	false	https://en.wiktionary.org/wiki/cock_tease	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 prick tease	insults	slut_shaming_sexual_reputation	category	en	moderate	false	false	https://en.wiktionary.org/wiki/prick_tease	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
@@ -580,7 +580,7 @@ men are scum	hate	hate_misandrist	category	en	moderate	false	true	https://www.da
 manbaby	hate	hate_misandrist	category	en	mild	false	true	https://en.wiktionary.org/wiki/manbaby	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 femoid	hate	incel_manosphere_lexicon	base	en	severe	false	false	https://www.nextgenmen.ca/s/Incels_-A-Guide-to-Symbols-and-Terminology_Moonshot-CVE-l462.pdf	© Moonshot CVE; reference only
 femoids	hate	incel_manosphere_lexicon	base	en	severe	false	false	https://arxiv.org/abs/2105.12006	arXiv non-exclusive distribution licence; reference only
-foid	hate	incel_manosphere_lexicon	base	en	severe	false	false	https://www.nextgenmen.ca/s/Incels_-A-Guide-to-Symbols-and-Terminology_Moonshot-CVE-l462.pdf	© Moonshot CVE; reference only
+foid	hate	incel_manosphere_lexicon	ambiguous	en	severe	false	false	https://www.nextgenmen.ca/s/Incels_-A-Guide-to-Symbols-and-Terminology_Moonshot-CVE-l462.pdf	© Moonshot CVE; reference only
 foids	hate	incel_manosphere_lexicon	base	en	severe	false	false	https://arxiv.org/abs/2105.12006	arXiv non-exclusive distribution licence; reference only
 fho	hate	incel_manosphere_lexicon	category	en	severe	false	false	https://www.unwomen.org/en/articles/glossary/glossary-the-manosphere	© UN Women; reference only
 awalt	hate	incel_manosphere_lexicon	category	en	moderate	false	false	https://www.nextgenmen.ca/s/Incels_-A-Guide-to-Symbols-and-Terminology_Moonshot-CVE-l462.pdf	© Moonshot CVE; reference only
@@ -602,18 +602,18 @@ stacylite	hate	incel_manosphere_lexicon	category	en	mild	false	false	https://en.
 nigga	hate	reclaimed_in_group_slurs	base	en	severe	false	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
 niggas	hate	reclaimed_in_group_slurs	base	en	severe	false	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
 queers	hate	reclaimed_in_group_slurs	category	en	moderate	false	true	https://huggingface.co/datasets/mmathys/profanity/blob/main/profanity_en.csv	MIT
-dyke	hate	reclaimed_in_group_slurs	base	en	severe	true	true	https://glaad.org/smsi/anti-lgbtq-online-hate-speech-disinformation-guide/	© GLAAD; reference only
-dykes	hate	reclaimed_in_group_slurs	base	en	severe	true	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
-fag	hate	reclaimed_in_group_slurs	base	en	moderate	true	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
-fags	hate	reclaimed_in_group_slurs	base	en	moderate	true	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
+dyke	hate	reclaimed_in_group_slurs	ambiguous	en	severe	true	true	https://glaad.org/smsi/anti-lgbtq-online-hate-speech-disinformation-guide/	© GLAAD; reference only
+dykes	hate	reclaimed_in_group_slurs	ambiguous	en	severe	true	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
+fag	hate	reclaimed_in_group_slurs	ambiguous	en	moderate	true	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
+fags	hate	reclaimed_in_group_slurs	ambiguous	en	moderate	true	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
 faggot	hate	reclaimed_in_group_slurs	base	en	severe	false	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
-faggots	hate	reclaimed_in_group_slurs	base	en	severe	false	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
-homo	hate	reclaimed_in_group_slurs	base	en	moderate	true	true	https://zenodo.org/records/4881008	CC BY 4.0
+faggots	hate	reclaimed_in_group_slurs	ambiguous	en	severe	false	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
+homo	hate	reclaimed_in_group_slurs	ambiguous	en	moderate	true	true	https://zenodo.org/records/4881008	CC BY 4.0
 bitch	hate	reclaimed_in_group_slurs	base	en	moderate	true	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
 bitches	hate	reclaimed_in_group_slurs	base	en	moderate	true	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
 bad bitch	hate	reclaimed_in_group_slurs	base	en	mild	false	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
 boss bitch	hate	reclaimed_in_group_slurs	category	en	mild	false	true	https://github.com/paul-rottger/hatecheck-data/blob/main/test_suite_cases.csv	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
-tranny	hate	reclaimed_in_group_slurs	base	en	severe	true	true	https://github.com/networkdynamics/slur-corpus	MIT
+tranny	hate	reclaimed_in_group_slurs	ambiguous	en	severe	true	true	https://github.com/networkdynamics/slur-corpus	MIT
 fag hag	hate	reclaimed_in_group_slurs	base	en	mild	false	true	https://www.ofcom.org.uk/__data/assets/pdf_file/0020/225335/offensive-language-quick-reference-guide.pdf	(c) Ofcom 2021; no open licence stated, so reference only
 gayboy	hate	reclaimed_in_group_slurs	category	en	mild	false	true	https://zenodo.org/records/4881008	CC BY 4.0
 soyboy	insults	insults_masculinity_sexual_status	category	en	mild	false	true	https://www.nextgenmen.ca/s/Incels_-A-Guide-to-Symbols-and-Terminology_Moonshot-CVE-l462.pdf	© Moonshot CVE; reference only
@@ -643,9 +643,9 @@ basement dweller	insults	insults_masculinity_sexual_status	category	en	mild	fals
 failson	insults	insults_masculinity_sexual_status	category	en	mild	false	true	https://en.wiktionary.org/wiki/failson	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 cucked	insults	insults_masculinity_sexual_status	base	en	mild	false	true	https://en.wiktionary.org/wiki/cucked	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 cuck	insults	insults_masculinity_sexual_status	base	en	mild	false	true	https://en.wiktionary.org/wiki/cuck	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
-mangina	insults	insults_masculinity_sexual_status	base	en	moderate	false	true	https://en.wiktionary.org/wiki/mangina	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
+mangina	insults	insults_masculinity_sexual_status	ambiguous	en	moderate	false	true	https://en.wiktionary.org/wiki/mangina	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 window lickers	hate	hate_disability_intellectual_developmental	category	en	severe	false	false	https://en.wiktionary.org/wiki/window_lickers	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
-downies	hate	hate_disability_intellectual_developmental	main	en	severe	false	false	https://en.wiktionary.org/wiki/Downies	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
+downies	hate	hate_disability_intellectual_developmental	ambiguous	en	severe	false	false	https://en.wiktionary.org/wiki/Downies	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 sperg	hate	hate_disability_intellectual_developmental	category	en	moderate	false	true	https://en.wiktionary.org/wiki/sperg	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 spergs	hate	hate_disability_intellectual_developmental	category	en	moderate	false	true	https://en.wiktionary.org/wiki/spergs	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
 sperging	hate	hate_disability_intellectual_developmental	category	en	moderate	false	true	https://en.wiktionary.org/wiki/sperging	CC BY-SA 4.0 / GFDL (share-alike applies to definitions)
@@ -914,7 +914,7 @@ chinese are a virus	hate	hate_dehumanizing_comparisons	main	en	severe	false	fals
 disabled people are subhuman	hate	hate_dehumanizing_comparisons	main	en	severe	false	false	https://github.com/paul-rottger/hatecheck-data	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
 kill all jews	hate	hate_genocidal_extermination_calls	main	en	severe	false	false	https://github.com/bvidgen/Dynamically-Generated-Hate-Speech-Dataset	CC BY 4.0 (stated in README)
 kill all the jews	hate	hate_genocidal_extermination_calls	main	en	severe	false	false	https://huggingface.co/datasets/ucberkeley-dlab/measuring-hate-speech	CC BY 4.0 (HF card)
-kill all muslims	hate	hate_genocidal_extermination_calls	main	en	severe	false	false	https://github.com/paul-rottger/hatecheck-data	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
+kill all muslims	hate	hate_genocidal_extermination_calls	ambiguous	en	severe	false	false	https://github.com/paul-rottger/hatecheck-data	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
 kill all christians	hate	hate_genocidal_extermination_calls	main	en	severe	false	false	https://github.com/rewire-online/edos	CC0-1.0
 kill all black people	hate	hate_genocidal_extermination_calls	main	en	severe	false	false	https://github.com/paul-rottger/hatecheck-data	CC BY 4.0 (GitHub license; the HF mirror Paul/hatecheck card also says cc-by-4.0)
 kill all whites	hate	hate_genocidal_extermination_calls	main	en	severe	false	false	https://huggingface.co/datasets/ucberkeley-dlab/measuring-hate-speech	CC BY 4.0 (HF card)
@@ -928,7 +928,7 @@ kill all niggers	hate	hate_genocidal_extermination_calls	main	en	severe	false	fa
 kill all infidels	hate	hate_genocidal_extermination_calls	main	en	severe	false	false	https://huggingface.co/datasets/google/civil_comments	CC0 1.0
 kill every muslim	hate	hate_genocidal_extermination_calls	main	en	severe	false	false	https://github.com/bvidgen/Dynamically-Generated-Hate-Speech-Dataset	CC BY 4.0 (stated in README)
 kill every jew	hate	hate_genocidal_extermination_calls	main	en	severe	false	false	https://github.com/rewire-online/edos	CC0-1.0
-kill the jews	hate	hate_genocidal_extermination_calls	main	en	severe	false	false	https://huggingface.co/datasets/google/civil_comments	CC0 1.0
+kill the jews	hate	hate_genocidal_extermination_calls	ambiguous	en	severe	false	false	https://huggingface.co/datasets/google/civil_comments	CC0 1.0
 kill the infidels	hate	hate_genocidal_extermination_calls	main	en	severe	false	false	https://huggingface.co/datasets/google/civil_comments	CC0 1.0
 gas the jews	hate	hate_genocidal_extermination_calls	main	en	severe	false	false	https://huggingface.co/datasets/ucberkeley-dlab/measuring-hate-speech	CC BY 4.0 (HF card)
 gas the kikes	hate	hate_genocidal_extermination_calls	main	en	severe	false	false	https://osf.io/edua3	CC BY 4.0
@@ -1076,7 +1076,7 @@ gtkrwn	extremism	extremism	duplicate	en	severe	false	false	https://www.adl.org/r
 total nigger death	extremism	extremism	duplicate	en	severe	false	false	https://en.wikipedia.org/wiki/List_of_symbols_designated_by_the_ADL_as_hate_symbols	CC BY-SA 4.0
 total kike death	extremism	extremism	duplicate	en	severe	false	false	https://www.adl.org/resources/hate-symbol/tnd-and-tkd	
 day of the rope	extremism	extremism	duplicate	en	severe	false	false	https://osf.io/edua3	CC BY 4.0
-white power	extremism	extremism	base	en	severe	true	false	https://en.wiktionary.org/wiki/Category:en:White_supremacist_ideology	CC BY-SA 4.0 / GFDL
+white power	extremism	extremism	ambiguous	en	severe	true	false	https://en.wiktionary.org/wiki/Category:en:White_supremacist_ideology	CC BY-SA 4.0 / GFDL
 it's ok to be white	extremism	extremism_white_supremacist_slogans	category	en	moderate	false	false	https://osf.io/edua3	CC BY 4.0
 white lives matter	extremism	extremism	duplicate	en	moderate	true	false	https://en.wiktionary.org/wiki/Category:en:White_supremacist_ideology	CC BY-SA 4.0 / GFDL
 globohomo	extremism	extremism	duplicate	en	moderate	false	false	https://en.wiktionary.org/wiki/Category:en:White_supremacist_ideology	CC BY-SA 4.0 / GFDL

@@ -36,16 +36,21 @@ Censoring releases the GIL.
 )doc"
     )
         .def(
-            py::init([](const std::string& lang, const std::string& custom_dictionary) {
+            py::init([](const std::string& lang, const std::string& custom_dictionary, bool ambiguous) {
                 if (!custom_dictionary.empty()) {
+                    if (ambiguous) {
+                        throw py::value_error("ambiguous works with the bundled word list, not with custom_dictionary");
+                    }
                     return std::make_unique<ProfaneDetector>(lang, custom_dictionary);
                 }
                 std::filesystem::path module_path = py::module_::import("zaraza").attr("__file__").cast<std::filesystem::path>();
-                std::filesystem::path dictionary = module_path.parent_path() / "faster_profanity_data" / lang / "profanity_wordslist.txt";
-                return std::make_unique<ProfaneDetector>(lang, dictionary.string());
+                std::filesystem::path data = module_path.parent_path() / "faster_profanity_data" / lang;
+                std::string ambiguous_dictionary = ambiguous ? (data / "ambiguous_wordslist.txt").string() : "";
+                return std::make_unique<ProfaneDetector>(lang, (data / "profanity_wordslist.txt").string(), ambiguous_dictionary);
             }),
             py::arg("lang") = "en",
             py::arg("custom_dictionary") = "",
+            py::arg("ambiguous") = false,
             R"doc(Load the word list.
 
 Args:
@@ -53,9 +58,12 @@ Args:
     custom_dictionary: Path to your own word list, one word or
         phrase per line. When set, it replaces the bundled list and
         lang is ignored.
+    ambiguous: Also hide words that are often harmless, such as
+        "dick" in "Moby Dick". Off by default.
 
 Raises:
     RuntimeError: The word list cannot be opened.
+    ValueError: ambiguous is set together with custom_dictionary.
 )doc"
         )
         .def(

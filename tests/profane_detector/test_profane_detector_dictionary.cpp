@@ -86,6 +86,20 @@ TEST(ProfaneDetectorDictionaryTest, SpacedLettersFound) {
     EXPECT_EQ(detector.censor("f.u.c.k", '*'), "*******");
 }
 
+TEST(ProfaneDetectorDictionaryTest, AmbiguousWordsNeedTheirList) {
+    std::filesystem::path folder = std::filesystem::temp_directory_path();
+    std::filesystem::path main_list = folder / "ambiguous_test_main.txt";
+    std::filesystem::path ambiguous_list = folder / "ambiguous_test_extra.txt";
+    std::ofstream(main_list) << "fuck\n";
+    std::ofstream(ambiguous_list) << "dick\n";
+    ProfaneDetector plain("", main_list.string());
+    ProfaneDetector strict("", main_list.string(), ambiguous_list.string());
+    EXPECT_EQ(plain.censor("Moby Dick, fuck", '*'), "Moby Dick, ****");
+    EXPECT_EQ(strict.censor("Moby Dick, fuck", '*'), "Moby ****, ****");
+    std::filesystem::remove(main_list);
+    std::filesystem::remove(ambiguous_list);
+}
+
 TEST(ProfaneDetectorDictionaryTest, PhraseAcrossBatchBoundaryFound) {
     ProfaneDetector detector = make_detector("son of a bitch\n");
     std::string padding(65530, 'x');
