@@ -12,14 +12,12 @@ public:
     std::size_t censor(
         ProfaneFinder& finder,
         const std::filesystem::path& path,
-        const char censor_char,
         tf::Executor* executor
     );
 private:
     bool censor_page(
         PdfPage& page,
         ProfaneFinder& finder,
-        const char censor_char,
         tf::Executor* executor
     );
 };

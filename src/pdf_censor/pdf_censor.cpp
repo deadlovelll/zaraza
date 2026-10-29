@@ -9,7 +9,6 @@
 std::size_t PdfCensor::censor(
     ProfaneFinder& finder,
     const std::filesystem::path& path,
-    const char censor_char,
     tf::Executor* executor
 ) {
     PdfDocument document(path);
@@ -17,7 +16,7 @@ std::size_t PdfCensor::censor(
     bool changed = false;
     for (int index = 0; index < page_count; ++index) {
         PdfPage page = document.load_page(index);
-        if (censor_page(page, finder, censor_char, executor)) {
+        if (censor_page(page, finder, executor)) {
             changed = true;
         }
     }
@@ -30,7 +29,6 @@ std::size_t PdfCensor::censor(
 bool PdfCensor::censor_page(
     PdfPage& page,
     ProfaneFinder& finder,
-    const char censor_char,
     tf::Executor* executor
 ) {
     // get profane words with their positions in the text
@@ -42,7 +40,7 @@ bool PdfCensor::censor_page(
     std::vector<PdfWord> words = page.words(spans);
     page.redact(words);
     for (const PdfWord& word : words) {
-        page.draw_text(word, censor_char);
+        page.draw_text(word);
     }
     page.commit();
     return true;

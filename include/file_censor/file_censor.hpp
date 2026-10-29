@@ -18,7 +18,6 @@ public:
     std::size_t censor_file(
         ProfaneFinder& finder,
         const std::filesystem::path& path,
-        const char censor_char,
         tf::Executor* executor
     );
 private:
@@ -33,20 +32,17 @@ private:
     std::size_t censor_office(
         ProfaneFinder& finder,
         const std::filesystem::path& path,
-        const char censor_char,
         tf::Executor* executor
     );
     std::size_t censor_text(
         ProfaneFinder& finder,
         std::span<char> text,
-        const char censor_char,
         tf::Executor* executor
     );
     std::size_t censor_utf16(
         ProfaneFinder& finder,
         std::span<char> text,
         bool big_endian,
-        const char censor_char,
         tf::Executor* executor
     );
     void keep_whole_lines(std::string& utf8);

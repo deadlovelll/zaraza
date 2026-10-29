@@ -86,12 +86,12 @@ bool ProfaneFinder::contains_profanity(std::string_view text) {
     return !search.profane_tokens.empty();
 }
 
-std::size_t ProfaneFinder::censor_inplace(std::span<char> text, const char censor_char, tf::Executor* executor) {
+std::size_t ProfaneFinder::censor_inplace(std::span<char> text, tf::Executor* executor) {
     std::vector<SourceSpan> spans = find_spans(std::string_view(text.data(), text.size()), executor);
     if (spans.empty()) {
         return text.size();
     }
-    return swear_word_hider.hide_tokens_inplace(text, spans, censor_char);
+    return swear_word_hider.hide_tokens_inplace(text, spans);
 }
 
 void ProfaneFinder::find_profane_tokens(

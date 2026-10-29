@@ -151,10 +151,9 @@ bool OfficeCensor::load(
 
 std::string OfficeCensor::hide(
     OfficeText& text,
-    const std::vector<SourceSpan>& spans,
-    const char censor_char
+    const std::vector<SourceSpan>& spans
 ) {
-    hide_segments(text.text, text.segments, spans, censor_char);
+    hide_segments(text.text, text.segments, spans);
     // write xml as is, without added indentation and line breaks
     unsigned int format = pugi::format_raw;
     // do not add <?xml?> declaration if the part had none
@@ -192,8 +191,7 @@ void OfficeCensor::collect(
 void OfficeCensor::hide_segments(
     const std::string& text,
     const std::vector<TextSegment>& segments,
-    const std::vector<SourceSpan>& spans,
-    const char censor_char
+    const std::vector<SourceSpan>& spans
 ) {
     std::size_t next = 0;
     std::size_t stars = spans[0].stars;
@@ -220,7 +218,7 @@ void OfficeCensor::hide_segments(
         }
         if (!clipped.empty()) {
             std::string_view value(text.data() + segment.start, segment.end - segment.start);
-            segment.node.text().set(swear_word_hider.hide_tokens(value, clipped, censor_char).c_str());
+            segment.node.text().set(swear_word_hider.hide_tokens(value, clipped).c_str());
         }
     }
 }

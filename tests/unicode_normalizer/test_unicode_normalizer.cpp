@@ -412,16 +412,35 @@ TEST_F(UnicodeNormalizerTest, CyrillicLettersWithMarkKept) {
 }
 
 TEST_F(UnicodeNormalizerTest, DecomposedCyrillicLettersWithMarkKept) {
-    std::string text = "хуи\u0306 ХУИ\u0306 у\u0306 У\u0306 і\u0308 І\u0308";
+    std::string text = "хуи\u0306 ХУИ\u0306 у\u0306 У\u0306 і\u0308 І\u0308 и\u0323\u0306 и\u0301\u0306";
     text = normalizer.normalize(text);
-    EXPECT_EQ(text, "xyй xyй ў ў ї ї");
+    EXPECT_EQ(text, "xyй xyй ў ў ї ї й и");
+}
+
+TEST_F(UnicodeNormalizerTest, CanonicalSingletonsReplaced) {
+    std::string text = "\u037E \u2329 \uF900";
+    text = normalizer.normalize(text);
+    EXPECT_EQ(text, "; \u3008 \u8C48");
+}
+
+TEST_F(UnicodeNormalizerTest, CompatibilityFormsStableOnSecondPass) {
+    std::vector<char32_t> changed;
+    for (char32_t code_point : {
+        U'\u03F2', U'\U0001D6A6', U'\U0001D6D3', U'\U0001D70D', U'\U0001D747', U'\U0001D781', U'\U0001D7BB', U'\U0001DF95'
+    }) {
+        std::string once = normalizer.normalize(utf8(code_point));
+        if (normalizer.normalize(once) != once) {
+            changed.push_back(code_point);
+        }
+    }
+    EXPECT_EQ(changed, std::vector<char32_t>{});
 }
 
 TEST_F(UnicodeNormalizerTest, SourceSpansPointToOriginalCharacters) {
     std::string text = "Ｆu​ß";
     EXPECT_EQ(normalizer.normalize(text), "fuss");
     EXPECT_EQ(normalizer.map_to_source(text, {{0, 4, '\0'}}, {}), (std::vector<SourceSpan>{{0, 9, 3}}));
-    EXPECT_EQ(normalizer.map_to_source(text, {{1, 3, '\0'}}, {}), (std::vector<SourceSpan>{{3, 7, 1}}));
+    EXPECT_EQ(normalizer.map_to_source(text, {{1, 3, '\0'}}, {}), (std::vector<SourceSpan>{{3, 9, 2}}));
     EXPECT_EQ(normalizer.map_to_source(text, {{0, 1, '\0'}, {2, 4, '\0'}}, {}), (std::vector<SourceSpan>{{0, 3, 1}, {7, 9, 1}}));
 
     std::string decomposed = "хй";

@@ -10,40 +10,37 @@
 
 #include "taskflow/algorithm/for_each.hpp"
 
-std::string ProfaneDetector::censor(std::string_view text, const char censor_char) {
+std::string ProfaneDetector::censor(std::string_view text) {
     std::string censored;
-    if (!censor(text, censor_char, censored)) {
+    if (!censor(text, censored)) {
         return std::string(text);
     }
     return censored;
 }
 
-bool ProfaneDetector::censor(std::string_view text, const char censor_char, std::string& censored) {
+bool ProfaneDetector::censor(std::string_view text, std::string& censored) {
     std::vector<SourceSpan> spans = profane_finder.find_spans(text, pool_for(text.size()));
     if (spans.empty()) {
         return false;
     }
-    censored = swear_word_hider.hide_tokens(text, spans, censor_char);
+    censored = swear_word_hider.hide_tokens(text, spans);
     return true;
 }
 
-std::size_t ProfaneDetector::censor_inplace(std::span<char> text, const char censor_char) {
-    return profane_finder.censor_inplace(text, censor_char, pool_for(text.size()));
+std::size_t ProfaneDetector::censor_inplace(std::span<char> text) {
+    return profane_finder.censor_inplace(text, pool_for(text.size()));
 }
 
-std::size_t ProfaneDetector::censor_file(const std::filesystem::path& path, const char censor_char) {
-    return file_censor.censor_file(profane_finder, path, censor_char, use_pool(executor));
+std::size_t ProfaneDetector::censor_file(const std::filesystem::path& path) {
+    return file_censor.censor_file(profane_finder, path, use_pool(executor));
 }
 
-std::vector<std::optional<std::string>> ProfaneDetector::censor_batch(
-    const std::vector<std::string_view>& texts,
-    const char censor_char
-) {
+std::vector<std::optional<std::string>> ProfaneDetector::censor_batch(const std::vector<std::string_view>& texts) {
     std::vector<std::optional<std::string>> censored(texts.size());
     tf::Executor* interop = use_pool(interop_executor);
     if (interop == nullptr) {
         for (std::size_t index = 0; index < texts.size(); ++index) {
-            censor_batch_item(texts, censor_char, censored, index);
+            censor_batch_item(texts, censored, index);
         }
         return censored;
     }
@@ -52,7 +49,6 @@ std::vector<std::optional<std::string>> ProfaneDetector::censor_batch(
         &ProfaneDetector::censor_batch_item,
         this,
         std::cref(texts),
-        censor_char,
         std::ref(censored)
     ));
     interop->run(taskflow).get();
@@ -61,26 +57,22 @@ std::vector<std::optional<std::string>> ProfaneDetector::censor_batch(
 
 void ProfaneDetector::censor_batch_item(
     const std::vector<std::string_view>& texts,
-    const char censor_char,
     std::vector<std::optional<std::string>>& censored,
     std::size_t index
 ) {
     std::string censored_text;
-    if (censor(texts[index], censor_char, censored_text)) {
+    if (censor(texts[index], censored_text)) {
         censored[index] = std::move(censored_text);
     }
 }
 
-std::vector<std::exception_ptr> ProfaneDetector::censor_files(
-    const std::vector<std::filesystem::path>& paths,
-    const char censor_char
-) {
+std::vector<std::exception_ptr> ProfaneDetector::censor_files(const std::vector<std::filesystem::path>& paths) {
     std::vector<std::size_t> first = first_occurrences(paths);
     std::vector<std::exception_ptr> errors(paths.size());
     tf::Executor* interop = use_pool(interop_executor);
     if (interop == nullptr) {
         for (std::size_t index = 0; index < paths.size(); ++index) {
-            censor_files_item(paths, first, censor_char, errors, index);
+            censor_files_item(paths, first, errors, index);
         }
     } else {
         tf::Taskflow taskflow;
@@ -89,7 +81,6 @@ std::vector<std::exception_ptr> ProfaneDetector::censor_files(
             this,
             std::cref(paths),
             std::cref(first),
-            censor_char,
             std::ref(errors)
         ));
         interop->run(taskflow).get();
@@ -104,7 +95,6 @@ std::vector<std::exception_ptr> ProfaneDetector::censor_files(
 void ProfaneDetector::censor_files_item(
     const std::vector<std::filesystem::path>& paths,
     const std::vector<std::size_t>& first,
-    const char censor_char,
     std::vector<std::exception_ptr>& errors,
     std::size_t index
 ) {
@@ -112,7 +102,7 @@ void ProfaneDetector::censor_files_item(
         return;
     }
     try {
-        censor_file(paths[index], censor_char);
+        censor_file(paths[index]);
     } catch (...) {
         errors[index] = std::current_exception();
     }

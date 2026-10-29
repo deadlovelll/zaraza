@@ -24,7 +24,7 @@ PYBIND11_MODULE(zaraza, z) {
 
 Example:
     >>> detector = ProfaneDetector()
-    >>> detector.censor("you fuck off", "*")
+    >>> detector.censor("you fuck off")
     'you **** ***'
 )doc";
     py::class_<ProfaneDetector>(
@@ -32,7 +32,7 @@ Example:
         "ProfaneDetector",
         R"doc(Find and censor profanity with a word list.
 
-Censoring releases the GIL.
+Every hidden character becomes *. Censoring releases the GIL.
 )doc"
     )
         .def(
@@ -68,7 +68,7 @@ Raises:
         )
         .def(
             "censor",
-            [](ProfaneDetector& detector, const py::str& text, char censor_char) -> py::object {
+            [](ProfaneDetector& detector, const py::str& text) -> py::object {
                 Py_ssize_t size = 0;
                 const char* data = PyUnicode_AsUTF8AndSize(text.ptr(), &size);
                 if (data == nullptr) {
@@ -79,7 +79,7 @@ Raises:
                 bool changed = false;
                 {
                     py::gil_scoped_release release;
-                    changed = detector.censor(view, censor_char, censored);
+                    changed = detector.censor(view, censored);
                 }
                 if (!changed) {
                     return text;
@@ -87,13 +87,10 @@ Raises:
                 return py::str(censored);
             },
             py::arg("text"),
-            py::arg("censor_char"),
             R"doc(Return the text with every profane word hidden.
 
 Args:
     text: Text to censor.
-    censor_char: ASCII character to write instead of each hidden
-        character, such as "*".
 
 Returns:
     The censored text, or text itself, without a copy, when nothing
@@ -102,7 +99,7 @@ Returns:
         )
         .def(
             "censor_inplace",
-            [](ProfaneDetector& detector, const py::buffer& buffer, char censor_char) {
+            [](ProfaneDetector& detector, const py::buffer& buffer) {
                 std::size_t size = 0;
                 {
                     py::buffer_info info = buffer.request(true);
@@ -111,7 +108,7 @@ Returns:
                     }
                     std::span<char> text(static_cast<char*>(info.ptr), static_cast<std::size_t>(info.size));
                     py::gil_scoped_release release;
-                    size = detector.censor_inplace(text, censor_char);
+                    size = detector.censor_inplace(text);
                 }
                 if (
                     PyByteArray_Check(buffer.ptr())
@@ -122,7 +119,6 @@ Returns:
                 return size;
             },
             py::arg("buffer"),
-            py::arg("censor_char"),
             R"doc(Hide profane words in a buffer of UTF-8 bytes.
 
 The buffer is edited in place, without a copy: bytearray, memoryview,
@@ -130,8 +126,6 @@ mmap or any other writable contiguous buffer of bytes can be used.
 
 Args:
     buffer: UTF-8 text to censor.
-    censor_char: ASCII character to write instead of each hidden
-        character, such as "*".
 
 Returns:
     The length of the censored text in bytes.
@@ -143,10 +137,10 @@ Raises:
         )
         .def(
             "censor_file",
-            [](ProfaneDetector& detector, const std::filesystem::path& path, char censor_char) {
+            [](ProfaneDetector& detector, const std::filesystem::path& path) {
                 try {
                     py::gil_scoped_release release;
-                    return detector.censor_file(path, censor_char);
+                    return detector.censor_file(path);
                 } catch (const std::system_error& error) {
                     PythonErrors python_errors;
                     python_errors.set_os_error(error, path);
@@ -154,15 +148,12 @@ Raises:
                 }
             },
             py::arg("path"),
-            py::arg("censor_char"),
             R"doc(Censor a file in place.
 
 Accepts UTF-8 and UTF-16 text, DOCX, XLSX, PPTX and PDF files.
 
 Args:
     path: Path to the file.
-    censor_char: ASCII character to write instead of each hidden
-        character, such as "*".
 
 Returns:
     The size of the file after censoring, in bytes.
@@ -175,11 +166,11 @@ Raises:
         )
         .def(
             "censor_files",
-            [](ProfaneDetector& detector, const std::vector<std::filesystem::path>& paths, char censor_char) {
+            [](ProfaneDetector& detector, const std::vector<std::filesystem::path>& paths) {
                 std::vector<std::exception_ptr> errors;
                 {
                     py::gil_scoped_release release;
-                    errors = detector.censor_files(paths, censor_char);
+                    errors = detector.censor_files(paths);
                 }
                 PythonErrors python_errors;
                 py::list result(errors.size());
@@ -193,7 +184,6 @@ Raises:
                 return result;
             },
             py::arg("paths"),
-            py::arg("censor_char"),
             R"doc(Censor several files in place, spread over the interop threads.
 
 Each file is censored like in censor_file. A file listed twice is
@@ -201,8 +191,6 @@ censored once. A failed file does not stop the others.
 
 Args:
     paths: Paths to the files.
-    censor_char: ASCII character to write instead of each hidden
-        character, such as "*".
 
 Returns:
     A list with one item per path: None when the file was censored,
@@ -225,7 +213,7 @@ Args:
         )
         .def(
             "censor_batch",
-            [](ProfaneDetector& detector, const py::list& texts, char censor_char) {
+            [](ProfaneDetector& detector, const py::list& texts) {
                 py::tuple items(texts);
                 std::vector<std::string_view> views;
                 views.reserve(items.size());
@@ -240,7 +228,7 @@ Args:
                 std::vector<std::optional<std::string>> censored;
                 {
                     py::gil_scoped_release release;
-                    censored = detector.censor_batch(views, censor_char);
+                    censored = detector.censor_batch(views);
                 }
                 py::list result(censored.size());
                 for (std::size_t index = 0; index < censored.size(); ++index) {
@@ -253,13 +241,10 @@ Args:
                 return result;
             },
             py::arg("texts"),
-            py::arg("censor_char"),
             R"doc(Censor a list of texts, spread over the interop threads.
 
 Args:
     texts: List of str.
-    censor_char: ASCII character to write instead of each hidden
-        character, such as "*".
 
 Returns:
     A list of censored texts in the same order. A text without

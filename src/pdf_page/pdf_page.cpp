@@ -55,15 +55,12 @@ void PdfPage::redact(const std::vector<PdfWord>& words) {
     }
 }
 
-void PdfPage::draw_text(
-    const PdfWord& word,
-    const char censor_char
-) {
+void PdfPage::draw_text(const PdfWord& word) {
     double unit_squared = word.matrix.a * word.matrix.a + word.matrix.b * word.matrix.b;
     if (unit_squared == 0) {
         return;
     }
-    std::vector<FPDF_WCHAR> stars(word.stars, static_cast<unsigned char>(censor_char));
+    std::vector<FPDF_WCHAR> stars(word.stars, '*');
     stars.push_back(0);
 
     // censor chars will always be in helvetica because it is supported by every pdf viewer

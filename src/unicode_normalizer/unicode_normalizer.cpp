@@ -111,6 +111,7 @@ std::string UnicodeNormalizer::normalize_text(
     std::size_t produced = 0;
     std::size_t chars_before = 0;
     std::size_t event = 0;
+    std::ptrdiff_t split_char = -1;
     if constexpr (with_offsets) {
         spans->reserve(tokens->size());
     }
@@ -226,8 +227,16 @@ std::string UnicodeNormalizer::normalize_text(
                         break;
                     }
                     if (event % 2 == 0) {
-                        spans->push_back({static_cast<std::size_t>(source_char.start), 0, 0});
-                        chars_before = produced - 1;
+                        // A token that starts where the previous one ended mid-character shares its span
+                        if (source_char.start != split_char) {
+                            spans->push_back({static_cast<std::size_t>(source_char.start), 0, 0});
+                            chars_before = produced - 1;
+                        }
+                    } else if (before < limit) {
+                        // The token ends inside this character's expansion (⒈ -> 1.), so the whole character is hidden
+                        spans->back().end = static_cast<std::size_t>(source_char.end);
+                        spans->back().stars = produced - chars_before;
+                        split_char = source_char.start;
                     } else {
                         spans->back().end = static_cast<std::size_t>(source_char.start);
                         spans->back().stars = produced - 1 - chars_before;
@@ -289,17 +298,31 @@ CharKind UnicodeNormalizer::classify_char(SourceChar source_char) {
 void UnicodeNormalizer::recompose_separate_letter(std::string_view text, SourceChar& source_char, CharKind& kind) {
     const utf8proc_uint8_t* bytes = reinterpret_cast<const utf8proc_uint8_t*>(text.data());
     const utf8proc_ssize_t size = static_cast<utf8proc_ssize_t>(text.size());
+    const utf8proc_int32_t above = 230;
     if (
-        kind == CharKind::Regular && source_char.end < size && bytes[source_char.end] == 0xCC
+        kind == CharKind::Regular && source_char.end < size && (bytes[source_char.end] & 0xFE) == 0xCC
         && diacritics_stripper.is_separate_letter_base(source_char.code_point)) [[unlikely]]
     {
-        utf8proc_int32_t mark;
-        utf8proc_ssize_t mark_len = utf8proc_iterate(bytes + source_char.end, size - source_char.end, &mark);
-        char32_t separate_letter = diacritics_stripper.compose_separate_letter(source_char.code_point, static_cast<char32_t>(mark));
-        if (separate_letter != 0) {
-            source_char.code_point = separate_letter;
-            source_char.end += mark_len;
-            kind = CharKind::Diacritic;
+        // Marks of other classes may stand between, like in NFC: и + U+0323 + U+0306 is still й
+        for (utf8proc_ssize_t pos = source_char.end; pos < size;) {
+            utf8proc_int32_t mark;
+            utf8proc_ssize_t mark_len = utf8proc_iterate(bytes + pos, size - pos, &mark);
+            if (mark_len <= 0 || !diacritics_stripper.is_diacritic_mark(static_cast<char32_t>(mark))) {
+                return;
+            }
+            char32_t separate_letter = diacritics_stripper.compose_separate_letter(source_char.code_point, static_cast<char32_t>(mark));
+            if (separate_letter != 0) {
+                source_char.code_point = separate_letter;
+                source_char.end = pos + mark_len;
+                kind = CharKind::Diacritic;
+                return;
+            }
+            // The breve and the diaeresis are marks above: a mark above or a class 0 one before them blocks them
+            utf8proc_int32_t combining_class = utf8proc_get_property(mark)->combining_class;
+            if (combining_class == 0 || combining_class == above) {
+                return;
+            }
+            pos += mark_len;
         }
     }
 }
@@ -360,8 +383,16 @@ OutputBuffer UnicodeNormalizer::append_compatibility_form(OutputBuffer out, char
         count = 1;
     }
 
+    // Folded, not only lowered, so a second pass changes nothing: 𝛓 -> ς -> σ
     for (utf8proc_ssize_t i = 0; i < count; ++i) {
-        out = append_code_point(out, lower(static_cast<char32_t>(decomposed[i])));
+        char32_t part = static_cast<char32_t>(decomposed[i]);
+        if (part < 0x80) {
+            out.push_back(lower_ascii(static_cast<char>(part)));
+        } else if (char_classifier.classify(part) == CharKind::CaseFolding) {
+            out = append_case_folded(out, part);
+        } else {
+            out = append_code_point(out, lower(part));
+        }
     }
     return out;
 }

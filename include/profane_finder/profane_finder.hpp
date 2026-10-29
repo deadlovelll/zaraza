@@ -35,7 +35,7 @@ public:
     std::vector<SourceSpan> find_spans(std::string_view text, tf::Executor* executor);
     bool worth_splitting(std::size_t size);
     bool contains_profanity(std::string_view text);
-    std::size_t censor_inplace(std::span<char> text, const char censor_char, tf::Executor* executor);
+    std::size_t censor_inplace(std::span<char> text, tf::Executor* executor);
 private:
     const std::size_t chunks_per_thread = 8;
     const std::size_t min_chunk_bytes = 256 << 10;

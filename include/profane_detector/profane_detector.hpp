@@ -23,18 +23,12 @@ public:
         const std::string& custom_dictionary,
         const std::string& ambiguous_dictionary = ""
     ) : profane_finder(lang, custom_dictionary, ambiguous_dictionary) {}
-    std::string censor(std::string_view text, const char censor_char);
-    bool censor(std::string_view text, const char censor_char, std::string& censored);
-    std::size_t censor_inplace(std::span<char> text, const char censor_char);
-    std::size_t censor_file(const std::filesystem::path& path, const char censor_char);
-    std::vector<std::optional<std::string>> censor_batch(
-        const std::vector<std::string_view>& texts,
-        const char censor_char
-    );
-    std::vector<std::exception_ptr> censor_files(
-        const std::vector<std::filesystem::path>& paths,
-        const char censor_char
-    );
+    std::string censor(std::string_view text);
+    bool censor(std::string_view text, std::string& censored);
+    std::size_t censor_inplace(std::span<char> text);
+    std::size_t censor_file(const std::filesystem::path& path);
+    std::vector<std::optional<std::string>> censor_batch(const std::vector<std::string_view>& texts);
+    std::vector<std::exception_ptr> censor_files(const std::vector<std::filesystem::path>& paths);
     bool contains_profanity(std::string_view text);
     // not thread-safe: do not call get_num_* while another thread calls set_num_*
     void set_num_threads(std::size_t threads);
@@ -54,14 +48,12 @@ private:
     tf::Executor* pool_for(std::size_t size);
     void censor_batch_item(
         const std::vector<std::string_view>& texts,
-        const char censor_char,
         std::vector<std::optional<std::string>>& censored,
         std::size_t index
     );
     void censor_files_item(
         const std::vector<std::filesystem::path>& paths,
         const std::vector<std::size_t>& first,
-        const char censor_char,
         std::vector<std::exception_ptr>& errors,
         std::size_t index
     );

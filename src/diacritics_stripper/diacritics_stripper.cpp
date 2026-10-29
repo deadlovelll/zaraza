@@ -99,7 +99,8 @@ int DiacriticsStripper::strip_uncached(char32_t code_point, char32_t* stripped) 
         has_diacritics = has_diacritics || is_diacritic_mark(static_cast<char32_t>(decomposed[i]));
     }
     if (!has_diacritics) {
-        stripped[0] = static_cast<char32_t>(lowered);
+        // A canonical singleton becomes its target, like NFC does: U+037E -> ;
+        stripped[0] = static_cast<char32_t>(count == 1 ? utf8proc_tolower(decomposed[0]) : lowered);
         return 1;
     }
 

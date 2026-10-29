@@ -22,13 +22,11 @@ public:
     );
     std::string hide_tokens(
         std::string_view text,
-        const std::vector<SourceSpan>& spans,
-        char censor_char
+        const std::vector<SourceSpan>& spans
     );
     std::size_t hide_tokens_inplace(
         std::span<char> text,
-        const std::vector<SourceSpan>& spans,
-        char censor_char
+        const std::vector<SourceSpan>& spans
     );
 private:
     std::uint32_t next_node(const Trie& trie, std::uint32_t node, char32_t ch);

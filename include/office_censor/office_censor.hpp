@@ -27,8 +27,7 @@ public:
     );
     std::string hide(
         OfficeText& text,
-        const std::vector<SourceSpan>& spans,
-        char censor_char
+        const std::vector<SourceSpan>& spans
     );
 private:
     static constexpr std::array<std::string_view, 10> text_types = {
@@ -63,7 +62,6 @@ private:
     void hide_segments(
         const std::string& text,
         const std::vector<TextSegment>& segments,
-        const std::vector<SourceSpan>& spans,
-        char censor_char
+        const std::vector<SourceSpan>& spans
     );
 };

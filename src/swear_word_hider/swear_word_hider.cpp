@@ -83,15 +83,14 @@ void SwearWordHider::find_profane_tokens(
 
 std::string SwearWordHider::hide_tokens(
     std::string_view text,
-    const std::vector<SourceSpan>& spans,
-    char censor_char
+    const std::vector<SourceSpan>& spans
 ) {
     std::string censored_text;
     censored_text.reserve(text.size());
     std::size_t copied = 0;
     for (const SourceSpan& span : spans) {
         censored_text.append(text, copied, span.start - copied);
-        censored_text.append(span.stars, censor_char);
+        censored_text.append(span.stars, '*');
         copied = span.end;
     }
     censored_text.append(text, copied);
@@ -100,8 +99,7 @@ std::string SwearWordHider::hide_tokens(
 
 std::size_t SwearWordHider::hide_tokens_inplace(
     std::span<char> text,
-    const std::vector<SourceSpan>& spans,
-    char censor_char
+    const std::vector<SourceSpan>& spans
 ) {
     std::size_t written = 0;
     std::size_t copied = 0;
@@ -112,7 +110,7 @@ std::size_t SwearWordHider::hide_tokens_inplace(
         written += span.start - copied;
         // Never write over input that is not copied yet
         std::size_t stars = std::min(span.stars, span.end - written);
-        std::memset(text.data() + written, censor_char, stars);
+        std::memset(text.data() + written, '*', stars);
         written += stars;
         copied = span.end;
     }

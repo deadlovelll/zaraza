@@ -23,10 +23,7 @@ public:
     const std::string& text() const;
     std::vector<PdfWord> words(const std::vector<SourceSpan>& spans);
     void redact(const std::vector<PdfWord>& words);
-    void draw_text(
-        const PdfWord& word,
-        const char censor_char
-    );
+    void draw_text(const PdfWord& word);
     void commit();
 private:
     FPDF_DOCUMENT document;
