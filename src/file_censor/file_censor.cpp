@@ -17,7 +17,6 @@ void FileCensor::reject_unsupported_format(std::string_view head) {
         head.starts_with(std::string_view("\xFF\xFE\0\0", 4))
         // utf32 be bom
         || head.starts_with(std::string_view("\0\0\xFE\xFF", 4))
-        || head.starts_with("%PDF")
         // .doc, .xls, .ppt
         || head.starts_with("\xD0\xCF\x11\xE0")
     ) {
@@ -44,6 +43,10 @@ std::size_t FileCensor::censor_file(
     if (is_office_archive(text)) {
         file.unmap();
         return censor_office(finder, path, censor_char, executor);
+    }
+    if (std::string_view(text.data(), text.size()).starts_with("%PDF")) {
+        file.unmap();
+        return pdf_censor.censor(finder, path, censor_char, executor);
     }
     std::size_t size = censor_text(finder, text, censor_char, executor);
     file.unmap();

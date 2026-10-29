@@ -7,6 +7,7 @@
 #include <string_view>
 
 #include "office_censor/office_censor.hpp"
+#include "pdf_censor/pdf_censor.hpp"
 #include "taskflow/taskflow.hpp"
 #include "utf16_converter/utf16_converter.hpp"
 
@@ -24,6 +25,7 @@ private:
     static constexpr std::size_t utf16_chunk_bytes = 2 << 20;
 
     OfficeCensor office_censor;
+    PdfCensor pdf_censor;
     Utf16Converter utf16_converter;
 
     void reject_unsupported_format(std::string_view head);
