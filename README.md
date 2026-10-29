@@ -1,1 +1,1 @@
-# faster_profanity
+# zaraza
