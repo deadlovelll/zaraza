@@ -12,7 +12,10 @@
 #include <utility>
 #include <vector>
 
+#include "fpdf_text.h"
+#include "fpdfview.h"
 #include "miniz.h"
+#include "pdf_thread/pdf_thread.hpp"
 #include "profane_detector/profane_detector.hpp"
 
 static ProfaneDetector make_detector(const std::string& words) {
@@ -456,6 +459,99 @@ TEST(ProfaneDetectorDictionaryTest, CensorFileRejectsUnsupportedAndMissingFiles)
     EXPECT_EQ(read_file(path), wrong_crc);
     std::filesystem::remove(path);
     EXPECT_THROW(detector.censor_file(path, '*'), std::system_error);
+}
+
+static std::string make_pdf(const std::string& content) {
+    std::vector<std::string> objects = {
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        "<< /Length " + std::to_string(content.size()) + " >>\nstream\n" + content + "\nendstream",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    };
+    std::string pdf = "%PDF-1.7\n";
+    std::vector<std::size_t> offsets;
+    for (std::size_t i = 0; i < objects.size(); ++i) {
+        offsets.push_back(pdf.size());
+        pdf += std::to_string(i + 1) + " 0 obj\n" + objects[i] + "\nendobj\n";
+    }
+    std::size_t xref = pdf.size();
+    pdf += "xref\n0 " + std::to_string(objects.size() + 1) + "\n0000000000 65535 f \n";
+    for (std::size_t offset : offsets) {
+        std::string number = std::to_string(offset);
+        pdf += std::string(10 - number.size(), '0') + number + " 00000 n \n";
+    }
+    pdf += "trailer\n<< /Size " + std::to_string(objects.size() + 1) + " /Root 1 0 R >>\nstartxref\n" + std::to_string(xref) + "\n%%EOF\n";
+    return pdf;
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorFileHidesPdfWordsAndKeepsBackground) {
+    ProfaneDetector detector = make_detector("fucking\n");
+    std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_pdf_test.pdf";
+    std::ofstream(path, std::ios::binary) << make_pdf("q 0.13 0.42 0.82 rg 72 640 468 80 re f Q BT /F1 30 Tf 0 0 0 rg 96 668 Td (You fucking idiot!) Tj ET");
+    detector.censor_file(path, '*');
+    std::string censored = read_file(path);
+    detector.censor_file(path, '*');
+    EXPECT_EQ(read_file(path), censored);
+    PdfThread thread;
+    FPDF_DOCUMENT document = FPDF_LoadDocument(path.string().c_str(), nullptr);
+    FPDF_PAGE page = FPDF_LoadPage(document, 0);
+    FPDF_TEXTPAGE text_page = FPDFText_LoadPage(page);
+    std::string text;
+    for (int index = 0; index < FPDFText_CountChars(text_page); ++index) {
+        text += static_cast<char>(FPDFText_GetUnicode(text_page, index));
+    }
+    EXPECT_EQ(text.find("fucking"), std::string::npos);
+    EXPECT_NE(text.find("*******"), std::string::npos);
+    FPDF_BITMAP bitmap = FPDFBitmap_Create(612, 792, 0);
+    FPDFBitmap_FillRect(bitmap, 0, 0, 612, 792, 0xFFFFFFFF);
+    FPDF_RenderPageBitmap(bitmap, page, 0, 0, 612, 792, 0, 0);
+    const unsigned char* pixels = static_cast<const unsigned char*>(FPDFBitmap_GetBuffer(bitmap));
+    int white = 0;
+    // the banner covers y 640..720 pt, at 72 dpi one pixel per point
+    for (int y = 792 - 720; y < 792 - 640; ++y) {
+        for (int x = 72; x < 540; ++x) {
+            const unsigned char* pixel = pixels + y * FPDFBitmap_GetStride(bitmap) + x * 4;
+            white += pixel[0] > 240 && pixel[1] > 240 && pixel[2] > 240;
+        }
+    }
+    EXPECT_EQ(white, 0);
+    FPDFBitmap_Destroy(bitmap);
+    FPDFText_ClosePage(text_page);
+    FPDF_ClosePage(page);
+    FPDF_CloseDocument(document);
+    std::filesystem::remove(path);
+}
+
+TEST(ProfaneDetectorDictionaryTest, CensorFileSizesPdfStarsByTextMatrix) {
+    ProfaneDetector detector = make_detector("fucking\n");
+    std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_pdf_matrix_test.pdf";
+    // font size 1 scaled to 30 by the text matrix, the way macOS writes PDFs
+    std::ofstream(path, std::ios::binary) << make_pdf("BT /F1 1 Tf 30 0 0 30 96 668 Tm (You fucking idiot!) Tj ET");
+    detector.censor_file(path, '*');
+    PdfThread thread;
+    FPDF_DOCUMENT document = FPDF_LoadDocument(path.string().c_str(), nullptr);
+    FPDF_PAGE page = FPDF_LoadPage(document, 0);
+    FPDF_TEXTPAGE text_page = FPDFText_LoadPage(page);
+    double star_height = 0;
+    for (int index = 0; index < FPDFText_CountChars(text_page); ++index) {
+        double left = 0;
+        double right = 0;
+        double bottom = 0;
+        double top = 0;
+        if (FPDFText_GetUnicode(text_page, index) != '*') {
+            continue;
+        }
+        if (FPDFText_GetCharBox(text_page, index, &left, &right, &bottom, &top)) {
+            star_height = top - bottom;
+            break;
+        }
+    }
+    EXPECT_GT(star_height, 5.0);
+    FPDFText_ClosePage(text_page);
+    FPDF_ClosePage(page);
+    FPDF_CloseDocument(document);
+    std::filesystem::remove(path);
 }
 
 TEST(ProfaneDetectorDictionaryTest, CensorFileEditsOfficeText) {

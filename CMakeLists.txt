@@ -104,12 +104,94 @@ target_link_libraries(taskflow
         Threads::Threads
 )
 
+if(APPLE)
+    set(EMBEDPDF_PLATFORM darwin)
+    set(EMBEDPDF_LIBRARY lib/libembedpdf.dylib)
+elseif(WIN32)
+    set(EMBEDPDF_PLATFORM win32)
+    set(EMBEDPDF_LIBRARY bin/embedpdf.dll)
+elseif(EXISTS /lib/ld-musl-x86_64.so.1 OR EXISTS /lib/ld-musl-aarch64.so.1)
+    set(EMBEDPDF_PLATFORM linuxmusl)
+    set(EMBEDPDF_LIBRARY lib/libembedpdf.a)
+else()
+    set(EMBEDPDF_PLATFORM linux)
+    set(EMBEDPDF_LIBRARY lib/libembedpdf.so)
+endif()
+
+# cross builds: macOS wheels for x86_64 are built on arm64, Windows ARM64 with MSVC
+set(EMBEDPDF_ARCH ${CMAKE_SYSTEM_PROCESSOR})
+if(CMAKE_OSX_ARCHITECTURES)
+    set(EMBEDPDF_ARCH ${CMAKE_OSX_ARCHITECTURES})
+elseif(CMAKE_CXX_COMPILER_ARCHITECTURE_ID)
+    set(EMBEDPDF_ARCH ${CMAKE_CXX_COMPILER_ARCHITECTURE_ID})
+endif()
+
+if(EMBEDPDF_ARCH MATCHES "^(arm64|aarch64|ARM64)$")
+    string(APPEND EMBEDPDF_PLATFORM -arm64)
+else()
+    string(APPEND EMBEDPDF_PLATFORM -x64)
+endif()
+
+set(EMBEDPDF_NAME libembedpdf-runtime-${EMBEDPDF_PLATFORM}-1461b0c51.tar.gz)
+file(STRINGS ${PROJECT_SOURCE_DIR}/third_party/embedpdf/SHA256SUMS EMBEDPDF_SUM REGEX " ${EMBEDPDF_NAME}$")
+string(REGEX MATCH "^[0-9a-f]+" EMBEDPDF_SHA256 "${EMBEDPDF_SUM}")
+if(NOT EMBEDPDF_SHA256)
+    message(FATAL_ERROR "No EmbedPDF runtime for ${EMBEDPDF_PLATFORM} in third_party/embedpdf/SHA256SUMS")
+endif()
+
+set(EMBEDPDF_ARCHIVE_DIR ${CMAKE_BINARY_DIR} CACHE PATH "Folder with the EmbedPDF runtime archive; it is downloaded there when missing")
+set(EMBEDPDF_ARCHIVE ${EMBEDPDF_ARCHIVE_DIR}/${EMBEDPDF_NAME})
+if(NOT EXISTS ${EMBEDPDF_ARCHIVE})
+    file(DOWNLOAD
+        https://github.com/embedpdf/runtime/releases/download/runtime-1461b0c5105137954b77dea0a6e2c15668518651/${EMBEDPDF_NAME}
+        ${EMBEDPDF_ARCHIVE}.part
+        TLS_VERIFY ON
+        STATUS EMBEDPDF_DOWNLOAD
+    )
+    file(SHA256 ${EMBEDPDF_ARCHIVE}.part EMBEDPDF_DOWNLOAD_SHA256)
+    if(NOT EMBEDPDF_DOWNLOAD_SHA256 STREQUAL EMBEDPDF_SHA256)
+        message(FATAL_ERROR "Could not download ${EMBEDPDF_NAME} (${EMBEDPDF_DOWNLOAD}); put it into EMBEDPDF_ARCHIVE_DIR")
+    endif()
+    file(RENAME ${EMBEDPDF_ARCHIVE}.part ${EMBEDPDF_ARCHIVE})
+endif()
+
+file(SHA256 ${EMBEDPDF_ARCHIVE} EMBEDPDF_ARCHIVE_SHA256)
+if(NOT EMBEDPDF_ARCHIVE_SHA256 STREQUAL EMBEDPDF_SHA256)
+    message(FATAL_ERROR "${EMBEDPDF_ARCHIVE} does not match its sha256 in third_party/embedpdf/SHA256SUMS")
+endif()
+
+file(ARCHIVE_EXTRACT
+    INPUT ${EMBEDPDF_ARCHIVE}
+    DESTINATION ${CMAKE_BINARY_DIR}/embedpdf
+)
+
+if(EMBEDPDF_PLATFORM MATCHES "^linuxmusl")
+    add_library(embedpdf STATIC IMPORTED)
+    set_target_properties(embedpdf PROPERTIES INTERFACE_LINK_LIBRARIES Threads::Threads)
+else()
+    add_library(embedpdf SHARED IMPORTED)
+endif()
+
+set_target_properties(embedpdf
+    PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/embedpdf/${EMBEDPDF_LIBRARY}
+        INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/embedpdf/include
+)
+
+if(WIN32)
+    set_target_properties(embedpdf PROPERTIES IMPORTED_IMPLIB ${CMAKE_BINARY_DIR}/embedpdf/lib/embedpdf.dll.lib)
+endif()
+
 add_library(faster_profanity_lib
     src/profane_detector/profane_detector.cpp
     src/profane_finder/profane_finder.cpp
     src/file_censor/file_censor.cpp
     src/office_censor/office_censor.cpp
     src/office_archive/office_archive.cpp
+    src/pdf_censor/pdf_censor.cpp
+    src/pdf_closer/pdf_closer.cpp
+    src/pdf_document/pdf_document.cpp
+    src/pdf_page/pdf_page.cpp
     src/utf16_converter/utf16_converter.cpp
     src/swear_word_hider/swear_word_hider.cpp
     src/censor_words_loader/censor_words_loader.cpp
@@ -136,21 +218,13 @@ endif()
 target_link_libraries(faster_profanity_lib
     PUBLIC
         taskflow
+        embedpdf
     PRIVATE
         utf8proc
         simdutf
         miniz
         libdeflate
         pugixml
-)
-
-add_executable(faster_profanity
-    src/main.cpp
-)
-
-target_link_libraries(faster_profanity
-    PRIVATE
-        faster_profanity_lib
 )
 
 set(PYBIND11_FINDPYTHON NEW CACHE STRING "")
@@ -168,6 +242,18 @@ target_link_libraries(zaraza
 install(TARGETS zaraza
     LIBRARY DESTINATION .
 )
+
+if(NOT EMBEDPDF_PLATFORM MATCHES "^linuxmusl")
+    install(FILES ${CMAKE_BINARY_DIR}/embedpdf/${EMBEDPDF_LIBRARY}
+        DESTINATION .
+    )
+endif()
+
+if(APPLE)
+    set_target_properties(zaraza PROPERTIES INSTALL_RPATH @loader_path)
+elseif(UNIX)
+    set_target_properties(zaraza PROPERTIES INSTALL_RPATH "\$ORIGIN")
+endif()
 
 install(FILES src/data/en/profanity_words/profanity_wordslist.txt
     DESTINATION faster_profanity_data/en

@@ -9,3 +9,14 @@ requires-python = ">=3.9"
 
 [tool.scikit-build]
 build.targets = ["zaraza"]
+
+[tool.cibuildwheel]
+test-command = "python -c \"import zaraza; assert zaraza.ProfaneDetector().censor('you fuck off', '*') == 'you **** ***'\""
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]
+environment = { MACOSX_DEPLOYMENT_TARGET = "13.0" }
+repair-wheel-command = ""
+
+[tool.cibuildwheel.windows]
+repair-wheel-command = ""

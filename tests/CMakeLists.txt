@@ -12,8 +12,14 @@ if(TEST_SOURCES)
             miniz
     )
 
+    if(WIN32)
+        add_custom_command(TARGET word_finder_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:embedpdf> $<TARGET_FILE_DIR:word_finder_tests>
+        )
+    endif()
+
     include(GoogleTest)
-    gtest_discover_tests(word_finder_tests)
+    gtest_discover_tests(word_finder_tests WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 else()
     message(FATAL_ERROR "No test sources found in ${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
