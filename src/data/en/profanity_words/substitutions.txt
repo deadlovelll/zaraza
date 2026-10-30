@@ -1,0 +1,102 @@
+# Characters, a tab, the ASCII letters they can stand for in the order tried, optionally a tab and a mark:
+# turned (an upside-down letter, ʞɔnɟ is also tried backwards) or when_turned (n next to upside-down letters).
+# Sequences of several characters go longest first. Uppercase letters are marks the normalizer puts for © € £ ...
+0	o0
+1	il1
+3	e3
+4	a4
+5	s5
+6	gb6
+7	t7
+8	b8
+9	g9
+@	a
+$	s
+!	i
+|	li
++	t
+(	c
+<	c
+{	c
+[	c
+]	i
+-	aeiou
+A	a
+B	b
+C	c
+E	ec
+I	il
+L	le
+N	n
+O	o
+R	r
+S	s
+T	ti
+U	u
+\_/	u
+(_)	u
+|_|	u
+|-|	h
+]-[	h
+)-(	h
+-|-	t
+|\|	n
+/\/	n
+/-\	a
+(_+	g
+()	o
+[]	o
+<>	o
+][	i
+|<	k
+|{	k
+|(	k
+}{	h
+|2	r
+/\	a
+[-	e
+|=	f
+|3	b
+|8	b
+|)	d
+и	n
+й	n
+л	n
+п	n
+ц	u
+ч	y
+я	r
+д	d
+б	b
+э	e
+з	e
+ж	x
+щ	w
+ф	o
+μ	u
+ʊ	u
+ĸ	k
+æ	a
+ŋ	n
+ɟ	f	turned
+ɔ	c	turned
+ʞ	k	turned
+ɥ	h	turned
+ᴉ	i	turned
+ʇ	t	turned
+ǝ	e	turned
+ɹ	r	turned
+ƃ	g	turned
+ɐ	a	turned
+ʍ	m	turned
+ʎ	y	turned
+ɾ	j	turned
+ʌ	v	turned
+n	un	when_turned
+u	nu	when_turned
+d	pd	when_turned
+p	dp	when_turned
+b	qb	when_turned
+q	bq	when_turned
+m	wm	when_turned
+w	mw	when_turned

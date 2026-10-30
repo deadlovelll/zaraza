@@ -18,10 +18,13 @@
 #include "pdf_thread/pdf_thread.hpp"
 #include "profane_detector/profane_detector.hpp"
 
+// Tests run in the build directory, where CMake copies src/data
+static const std::string substitutions = "data/en/profanity_words/substitutions.txt";
+
 static ProfaneDetector make_detector(const std::string& words, bool deobfuscate = false) {
     std::filesystem::path path = std::filesystem::temp_directory_path() / "profane_detector_dictionary_test.txt";
     std::ofstream(path) << words;
-    ProfaneDetector detector("", path.string(), "", deobfuscate);
+    ProfaneDetector detector("", path.string(), "", deobfuscate, "", "", deobfuscate ? substitutions : "");
     std::filesystem::remove(path);
     return detector;
 }

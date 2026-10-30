@@ -24,6 +24,7 @@ file(COPY
     ${CMAKE_SOURCE_DIR}/src/data/en/profanity_words/ambiguous_wordslist.txt
     ${CMAKE_SOURCE_DIR}/src/data/en/profanity_words/variant_wordslist.txt
     ${CMAKE_SOURCE_DIR}/src/data/en/profanity_words/glue_wordslist.txt
+    ${CMAKE_SOURCE_DIR}/src/data/en/profanity_words/substitutions.txt
     DESTINATION ${CMAKE_BINARY_DIR}/faster_profanity_data/en
 )
 
@@ -268,6 +269,7 @@ install(FILES
     src/data/en/profanity_words/ambiguous_wordslist.txt
     src/data/en/profanity_words/variant_wordslist.txt
     src/data/en/profanity_words/glue_wordslist.txt
+    src/data/en/profanity_words/substitutions.txt
     DESTINATION faster_profanity_data/en
 )
 

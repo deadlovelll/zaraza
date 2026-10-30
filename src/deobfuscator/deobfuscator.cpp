@@ -1,7 +1,10 @@
 #include <algorithm>
 #include <array>
+#include <cerrno>
 #include <cstring>
+#include <fstream>
 #include <string>
+#include <system_error>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
@@ -10,6 +13,42 @@
 
 #include "deobfuscator/deobfuscator.hpp"
 #include "trie_loader/trie_loader.hpp"
+
+// One per line: characters, a tab, the letters they stand for, optionally a tab and turned or when_turned.
+// shortcut: letters must be ASCII, the decoder rewrites in place byte for byte; others never match until that changes
+void Deobfuscator::load_substitutions(const std::string& path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        throw std::system_error(errno, std::generic_category(), "cannot open the substitutions " + path);
+    }
+    std::string line;
+    while (std::getline(file, line)) {
+        std::size_t tab = line.find('\t');
+        if (tab == 0 || tab == std::string::npos) {
+            continue;
+        }
+        std::size_t mark_tab = line.find('\t', tab + 1);
+        std::string characters = line.substr(0, tab);
+        std::string letters = line.substr(tab + 1, mark_tab == std::string::npos ? std::string::npos : mark_tab - tab - 1);
+        std::string mark = mark_tab == std::string::npos ? "" : line.substr(mark_tab + 1);
+        unsigned char lead = static_cast<unsigned char>(characters[0]);
+        if (lead < 0x80 && characters.size() > 1) {
+            leet_sequences.push_back(characters);
+            leet_sequence_letters.push_back(letters);
+            sequence_starts[lead] = true;
+            continue;
+        }
+        std::size_t length = lead < 0x80 ? 1 : lead >= 0xF0 ? 4 : lead >= 0xE0 ? 3 : 2;
+        char32_t code_point = lead < 0x80 ? lead : lead & (0x7Fu >> length);
+        for (std::size_t i = 1; i < length && i < characters.size(); ++i) {
+            code_point = (code_point << 6) | (static_cast<unsigned char>(characters[i]) & 0x3Fu);
+        }
+        (mark == "when_turned" ? turned_symbol_letters : symbol_letters)[code_point] = letters;
+        if (mark == "turned") {
+            turned_letters.insert(code_point);
+        }
+    }
+}
 
 // sh!t, f*ck, a$$hole, fuuuck: a token, or tokens joined by symbols, that spells a dictionary word
 // is rewritten into that word in place, so the matcher finds it
@@ -816,14 +855,10 @@ bool Deobfuscator::decode_chunk(
 }
 
 std::size_t Deobfuscator::leet_sequence_at(const std::string& text, std::size_t pos, std::size_t end) {
-    char c = text[pos];
-    // Every sequence starts with one of these
-    if (c != '|' && c != '(' && c != ')' && c != '[' && c != ']' && c != '}' && c != '<' && c != '-' && c != '/' && c != '\\') {
-        return leet_sequences.size();
-    }
-    for (std::size_t i = 0; i < leet_sequences.size(); ++i) {
-        std::string_view sequence = leet_sequences[i];
-        if (sequence[0] == c && end - pos >= sequence.size() && std::string_view(text.data() + pos, sequence.size()) == sequence) {
+    unsigned char lead = static_cast<unsigned char>(text[pos]);
+    for (std::size_t i = 0; lead < 0x80 && sequence_starts[lead] && i < leet_sequences.size(); ++i) {
+        const std::string& sequence = leet_sequences[i];
+        if (sequence[0] == text[pos] && end - pos >= sequence.size() && std::string_view(text.data() + pos, sequence.size()) == sequence) {
             return i;
         }
     }
@@ -831,81 +866,34 @@ std::size_t Deobfuscator::leet_sequence_at(const std::string& text, std::size_t 
 }
 
 std::string_view Deobfuscator::letters_for(char c) {
-    if (c == '-') {
-        return "aeiou";
+    std::string_view letters = letters_for(static_cast<char32_t>(static_cast<unsigned char>(c)));
+    if (!letters.empty()) {
+        return letters;
     }
     if (is_mask(c) || is_weak_mask(c)) {
         return alphabet.substr(alphabet.find('a'));
     }
-    switch (c) {
-        case '0': return "o0";
-        case '1': return "il1";
-        case '3': return "e3";
-        case '4': return "a4";
-        case '5': return "s5";
-        case '6': return "gb6";
-        case '7': return "t7";
-        case '8': return "b8";
-        case '9': return "g9";
-        case '@': return "a";
-        case '$': return "s";
-        case '!': return "i";
-        case '|': return "li";
-        case '+': return "t";
-        case '(':
-        case '<':
-        case '{':
-        case '[':
-            return "c";
-        case ']': return "i";
-        // Symbols the normalizer marks as letters: € ∑, £, ┴, ¡ ¦; the rest are their own letter (© → C)
-        case 'E': return "ec";
-        case 'L': return "le";
-        case 'T': return "ti";
-        case 'I': return "il";
-        default:
-            break;
-    }
     // A letter or another digit spells itself
-    std::size_t column = alphabet.find(c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c);
+    std::size_t column = alphabet.find(c);
     return column == std::string_view::npos || c == ' ' ? std::string_view() : alphabet.substr(column, 1);
 }
 
 std::string_view Deobfuscator::letters_for(char32_t code_point) {
     if (code_point >= leet_sequence_code) {
-        return leet_sequence_letters.substr(code_point - leet_sequence_code, 1);
+        return leet_sequence_letters[code_point - leet_sequence_code];
     }
-    std::size_t letter = drawn_letter(code_point);
-    return letter < drawn_letters.size() ? std::string_view(&drawn_letters[letter].latin, 1) : std::string_view();
-}
-
-// None is ASCII
-std::size_t Deobfuscator::drawn_letter(char32_t code_point) {
-    std::size_t letter = code_point < 0x80 ? drawn_letters.size() : 0;
-    while (letter < drawn_letters.size() && drawn_letters[letter].code_point != code_point) {
-        ++letter;
-    }
-    return letter;
+    std::unordered_map<char32_t, std::string>::const_iterator letters = symbol_letters.find(code_point);
+    return letters == symbol_letters.end() ? std::string_view() : std::string_view(letters->second);
 }
 
 bool Deobfuscator::is_turned(char32_t code_point) {
-    std::size_t letter = drawn_letter(code_point);
-    return letter >= first_turned_letter && letter < drawn_letters.size();
+    return code_point >= 0x80 && turned_letters.contains(code_point);
 }
 
 // Next to upside-down letters, n is a turned u: ɟnɔʞ
 std::string_view Deobfuscator::turned_letters_for(char c) {
-    switch (c) {
-        case 'n': return "un";
-        case 'u': return "nu";
-        case 'd': return "pd";
-        case 'p': return "dp";
-        case 'b': return "qb";
-        case 'q': return "bq";
-        case 'm': return "wm";
-        case 'w': return "mw";
-        default: return letters_for(c);
-    }
+    std::unordered_map<char32_t, std::string>::const_iterator letters = turned_symbol_letters.find(static_cast<unsigned char>(c));
+    return letters == turned_symbol_letters.end() ? letters_for(c) : std::string_view(letters->second);
 }
 
 const Node& Deobfuscator::node_at(const Trie& trie, std::uint32_t node) {

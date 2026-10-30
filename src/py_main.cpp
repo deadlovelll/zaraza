@@ -37,20 +37,21 @@ Every hidden character becomes *. Censoring releases the GIL.
     )
         .def(
             py::init([](const std::string& lang, const std::string& custom_dictionary, bool ambiguous, bool deobfuscate) {
+                std::filesystem::path module_path = py::module_::import("zaraza").attr("__file__").cast<std::filesystem::path>();
+                std::filesystem::path data = module_path.parent_path() / "faster_profanity_data" / lang;
+                std::string substitutions = deobfuscate ? (data / "substitutions.txt").string() : "";
                 if (!custom_dictionary.empty()) {
                     if (ambiguous) {
                         throw py::value_error("ambiguous works with the bundled word list, not with custom_dictionary");
                     }
-                    return std::make_unique<ProfaneDetector>(lang, custom_dictionary, "", deobfuscate);
+                    return std::make_unique<ProfaneDetector>(lang, custom_dictionary, "", deobfuscate, "", "", substitutions);
                 }
-                std::filesystem::path module_path = py::module_::import("zaraza").attr("__file__").cast<std::filesystem::path>();
-                std::filesystem::path data = module_path.parent_path() / "faster_profanity_data" / lang;
                 std::string ambiguous_dictionary = ambiguous ? (data / "ambiguous_wordslist.txt").string() : "";
                 std::string variant_dictionary = deobfuscate ? (data / "variant_wordslist.txt").string() : "";
                 std::string glue_dictionary = deobfuscate ? (data / "glue_wordslist.txt").string() : "";
                 return std::make_unique<ProfaneDetector>(
                     lang, (data / "profanity_wordslist.txt").string(), ambiguous_dictionary, deobfuscate, variant_dictionary,
-                    glue_dictionary
+                    glue_dictionary, substitutions
                 );
             }),
             py::arg("lang") = "en",

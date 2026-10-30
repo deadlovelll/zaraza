@@ -24,8 +24,9 @@ public:
         const std::string& ambiguous_dictionary = "",
         bool deobfuscate = false,
         const std::string& variant_dictionary = "",
-        const std::string& glue_dictionary = ""
-    ) : profane_finder(lang, custom_dictionary, ambiguous_dictionary, deobfuscate, variant_dictionary, glue_dictionary) {}
+        const std::string& glue_dictionary = "",
+        const std::string& substitutions = ""
+    ) : profane_finder(lang, custom_dictionary, ambiguous_dictionary, deobfuscate, variant_dictionary, glue_dictionary, substitutions) {}
     std::string censor(std::string_view text);
     bool censor(std::string_view text, std::string& censored);
     std::size_t censor_inplace(std::span<char> text);

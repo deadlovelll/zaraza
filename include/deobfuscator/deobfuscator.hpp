@@ -9,7 +9,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "confusables_mapper/confusables.hpp"
 #include "node/node.hpp"
 #include "token/token.hpp"
 #include "word_filter/word_filter.hpp"
@@ -18,6 +17,7 @@
 // same length, so the matcher finds the dictionary word
 class Deobfuscator {
 public:
+    void load_substitutions(const std::string& path);
     void decode(
         std::string& text,
         std::vector<Token>& tokens,
@@ -29,23 +29,16 @@ public:
         std::unordered_map<std::string, std::size_t> ranks
     );
 private:
-    // Letters drawn with several symbols: f|_|ck, fagg()t, |\|igger. Longer ones first
-    const std::array<std::string_view, 26> leet_sequences = {
-        "\\_/", "(_)", "|_|", "|-|", "]-[", ")-(", "-|-", "|\\|", "/\\/", "/-\\", "(_+", "()",
-        "[]", "<>", "][", "|<", "|{", "|(", "}{", "|2", "/\\", "[-", "|=", "|3", "|8", "|)"
-    };
-    const std::string_view leet_sequence_letters = "uuuhhhtnnagooo" "ikkkhraefbbd";
+    // From the substitutions file: one character (1 -> il1, и -> n), the same next to upside-down letters (n -> un),
+    // upside-down letters, several ASCII characters (|_| -> u, longest first)
+    std::unordered_map<char32_t, std::string> symbol_letters;
+    std::unordered_map<char32_t, std::string> turned_symbol_letters;
+    std::unordered_set<char32_t> turned_letters;
+    std::vector<std::string> leet_sequences;
+    std::vector<std::string> leet_sequence_letters;
+    std::array<bool, 128> sequence_starts{};
     // Code points past Unicode stand for the sequences
     const char32_t leet_sequence_code = 0x110000;
-    // Letters the normalizer keeps that stylized text draws as Latin ones, then upside-down ones: ɟnɔʞ.
-    // The normalizer maps the rest (в, м, т, н, к, ɯ, ꞁ, ı)
-    const std::array<Confusable, 33> drawn_letters = {{
-        {U'и', 'n'}, {U'й', 'n'}, {U'л', 'n'}, {U'п', 'n'}, {U'ц', 'u'}, {U'ч', 'y'}, {U'я', 'r'}, {U'д', 'd'}, {U'б', 'b'},
-        {U'э', 'e'}, {U'з', 'e'}, {U'ж', 'x'}, {U'щ', 'w'}, {U'ф', 'o'}, {U'μ', 'u'}, {U'ʊ', 'u'}, {U'ĸ', 'k'}, {U'æ', 'a'},
-        {U'ŋ', 'n'}, {U'ɟ', 'f'}, {U'ɔ', 'c'}, {U'ʞ', 'k'}, {U'ɥ', 'h'}, {U'ᴉ', 'i'}, {U'ʇ', 't'}, {U'ǝ', 'e'}, {U'ɹ', 'r'},
-        {U'ƃ', 'g'}, {U'ɐ', 'a'}, {U'ʍ', 'm'}, {U'ʎ', 'y'}, {U'ɾ', 'j'}, {U'ʌ', 'v'}
-    }};
-    const std::size_t first_turned_letter = 19;
     // Controls but \t to \r, ! " # $ % & ( ) * + - . / < = > ? below 64, @ [ \\ ] ^ _ ` { | } ~ DEL above
     const std::uint64_t symbol_low = 0xF000EF7EFFFFC1FE;
     const std::uint64_t symbol_high = 0xF8000001F8000001;
@@ -80,7 +73,6 @@ private:
         const Trie& trie
     );
     bool is_turned(char32_t code_point);
-    std::size_t drawn_letter(char32_t code_point);
     std::string_view turned_letters_for(char c);
     bool may_be_split(const std::string& text, const Token& left, const Token& right);
     bool is_split_word(const std::string& text, const Token& left, const Token& right);

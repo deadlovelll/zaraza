@@ -26,9 +26,13 @@ public:
         const std::string& ambiguous_dictionary,
         bool deobfuscate,
         const std::string& variant_dictionary,
-        const std::string& glue_dictionary
+        const std::string& glue_dictionary,
+        const std::string& substitutions
     ) : deobfuscate(deobfuscate), unicode_normalizer(deobfuscate) {
         censor_words_loader.load_censor_words(lang, custom_dictionary);
+        if (!substitutions.empty()) {
+            deobfuscator.load_substitutions(substitutions);
+        }
         if (!glue_dictionary.empty()) {
             deobfuscator.load_glue_words(censor_words_loader.get_censor_words(), censor_words_loader.load_ranks(glue_dictionary));
         }
