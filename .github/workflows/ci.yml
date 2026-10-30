@@ -20,8 +20,23 @@ jobs:
       - run: cmake --build build --config Release --parallel
       - run: ctest --test-dir build --build-config Release --output-on-failure
 
+  sanitizers:
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [address, undefined, thread]
+    runs-on: ubuntu-24.04
+    env:
+      FLAGS: -fsanitize=${{ matrix.sanitizer }} -fno-sanitize-recover=all -fno-omit-frame-pointer
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - run: sudo sysctl vm.mmap_rnd_bits=28
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DFASTER_PROFANITY_BUILD_TESTS=ON "-DCMAKE_C_FLAGS=$FLAGS" "-DCMAKE_CXX_FLAGS=$FLAGS"
+      - run: cmake --build build --parallel
+      - run: ctest --test-dir build --output-on-failure
+
   wheels:
-    needs: test
+    needs: [test, sanitizers]
     strategy:
       fail-fast: false
       matrix:
