@@ -224,7 +224,7 @@ target_include_directories(faster_profanity_lib
 )
 
 if(WIN32)
-    target_compile_definitions(faster_profanity_lib PRIVATE NOMINMAX)
+    target_compile_definitions(faster_profanity_lib PUBLIC NOMINMAX)
 endif()
 
 target_link_libraries(faster_profanity_lib
