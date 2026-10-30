@@ -718,7 +718,8 @@ TEST(ProfaneDetectorDictionaryTest, CensorFileEditsStoredOfficeParts) {
     ProfaneDetector detector = make_detector("fuck\n");
     std::filesystem::path path = std::filesystem::temp_directory_path() / "censor_file_stored_test.docx";
     write_zip(path, {{"[Content_Types].xml", office_types}, {"word/document.xml", "<w:p><w:r><w:t>fuck</w:t></w:r></w:p>"}}, MZ_NO_COMPRESSION);
-    EXPECT_EQ(detector.censor_file(path), std::filesystem::file_size(path));
+    std::size_t size = detector.censor_file(path);
+    EXPECT_EQ(size, std::filesystem::file_size(path));
     EXPECT_EQ(read_zip_entry(path, "word/document.xml"), "<w:p><w:r><w:t>****</w:t></w:r></w:p>");
     std::filesystem::remove(path);
 }

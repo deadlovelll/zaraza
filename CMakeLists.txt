@@ -11,6 +11,10 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 # LTO: lets the compiler inline functions across .cpp files, including utf8proc
 include(CheckIPOSupported)
 check_ipo_supported(RESULT ipo_supported)
