@@ -98,10 +98,10 @@ TEST_F(UnicodeNormalizerTest, TurkishDottedCapitalI) {
 }
 
 TEST_F(UnicodeNormalizerTest, ByteLengthChanges) {
-    // U+023A (2 bytes) lowercases to U+2C65 (3 bytes)
-    std::string text = "Ⱥ";
+    // U+023E (2 bytes) lowercases to U+2C66 (3 bytes)
+    std::string text = "Ⱦ";
     text = normalizer.normalize(text);
-    EXPECT_EQ(text, "ⱥ");
+    EXPECT_EQ(text, "ⱦ");
 }
 
 TEST_F(UnicodeNormalizerTest, FullwidthLetters) {
@@ -242,9 +242,9 @@ TEST_F(UnicodeNormalizerTest, CyrillicAndEmojiKept) {
 }
 
 TEST_F(UnicodeNormalizerTest, EmojiVariationSelectorRemoved) {
-    std::string text = "❤️";
+    std::string text = "☺️";
     text = normalizer.normalize(text);
-    EXPECT_EQ(text, "❤");
+    EXPECT_EQ(text, "☺");
 }
 
 TEST_F(UnicodeNormalizerTest, WhitespaceKeptNoBreakSpaceBecomesSpace) {

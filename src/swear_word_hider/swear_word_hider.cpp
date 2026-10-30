@@ -57,18 +57,21 @@ void SwearWordHider::find_profane_tokens(
                 reinterpret_cast<const Node*>(reinterpret_cast<const char*>(trie.nodes.data()) + node)->matches
             ) {
                 std::size_t matched = matched_tokens(text, tokens, k, match);
-                if (matched == 0) {
+                std::size_t skipped = matched == 0 ? leading_article(text, token, match) : 0;
+                if (matched == 0 && skipped == 0) {
                     continue;
                 }
+                matched = std::max<std::size_t>(matched, 1);
                 while (
-                    !search.profane_tokens.empty() 
-                    && search.profane_tokens.back().start >= 
-                    search.dropped + tokens[k + 1 - matched].start
+                    !search.profane_tokens.empty()
+                    && search.profane_tokens.back().start >=
+                    search.dropped + tokens[k + 1 - matched].start + skipped
                 ) {
                     search.profane_tokens.pop_back();
                 }
                 for (std::size_t m = k + 1 - matched; m <= k; ++m) {
-                    search.profane_tokens.push_back({search.dropped + tokens[m].start, search.dropped + tokens[m].end, tokens[m].separator});
+                    std::size_t start = tokens[m].start + (m == k ? skipped : 0);
+                    search.profane_tokens.push_back({search.dropped + start, search.dropped + tokens[m].end, tokens[m].separator});
                 }
             }
         }
@@ -160,4 +163,21 @@ std::size_t SwearWordHider::matched_tokens(
         }
     }
     return length == match.length ? spaces + 1 : 0;
+}
+
+// a f u c k: spaced letters took the article in, so the word starts after it
+std::size_t SwearWordHider::leading_article(
+    const std::string& text,
+    const Token& token,
+    const Match& match
+) {
+    if (match.spaces != 0 || token.separator != ' ' || (text[token.start] != 'a' && text[token.start] != 'i')) {
+        return 0;
+    }
+    std::size_t letters = token.end - token.start - static_cast<std::size_t>(std::count(
+        text.begin() + static_cast<std::ptrdiff_t>(token.start),
+        text.begin() + static_cast<std::ptrdiff_t>(token.end),
+        ' '
+    ));
+    return letters == match.length + 1 ? 2 : 0;
 }

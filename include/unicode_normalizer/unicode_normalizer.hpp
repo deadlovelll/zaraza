@@ -21,6 +21,9 @@
 // strips diacritics (é -> e) and replaces lookalikes of Latin letters with them (Cyrillic с -> c).
 class UnicodeNormalizer {
 public:
+    UnicodeNormalizer() = default;
+    // Deobfuscation reads Braille and symbols drawn as letters and keeps the right-to-left override (U+202E)
+    explicit UnicodeNormalizer(bool deobfuscate) : deobfuscate(deobfuscate) {}
     [[nodiscard]] std::string normalize(std::string_view text);
     std::size_t normalize_batch(
         std::string_view text,
@@ -33,6 +36,7 @@ public:
         const std::vector<BatchStart>& batch_starts
     );
 private:
+    bool deobfuscate = false;
     CharClassifier char_classifier;
     DiacriticsStripper diacritics_stripper;
 
@@ -63,4 +67,7 @@ private:
     using FastOutputs = std::array<std::uint8_t, 0x10000>;
     const FastOutputs& fast_outputs();
     FastOutputs build_fast_outputs();
+    const FastOutputs& deobfuscated_outputs();
+    FastOutputs build_deobfuscated_outputs();
+    bool is_direction_override(char32_t code_point);
 };

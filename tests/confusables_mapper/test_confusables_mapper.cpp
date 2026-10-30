@@ -26,6 +26,13 @@ TEST(ConfusablesMapperTest, GreekLookalikes) {
     EXPECT_EQ(ConfusablesMapper::to_latin(U'ν'), 'v');
 }
 
+TEST(ConfusablesMapperTest, StylizedLettersAndMasks) {
+    EXPECT_EQ(ConfusablesMapper::to_latin(U'ø'), 'o');
+    EXPECT_EQ(ConfusablesMapper::to_latin(U'ł'), 'l');
+    EXPECT_EQ(ConfusablesMapper::to_latin(U'θ'), 'o');
+    EXPECT_EQ(ConfusablesMapper::to_latin(U'•'), '*');
+}
+
 TEST(ConfusablesMapperTest, NoLookalike) {
     EXPECT_EQ(ConfusablesMapper::to_latin(U'a'), 0);
     EXPECT_EQ(ConfusablesMapper::to_latin(U'ж'), 0);

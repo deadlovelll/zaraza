@@ -53,6 +53,7 @@ void TrieLoader::add_words(const std::unordered_set<std::string>& words) {
             if (next == 0) {
                 next = static_cast<std::uint32_t>(nodes.size());
                 nodes.emplace_back();
+                nodes.back().depth = nodes[node].depth + static_cast<std::uint32_t>(len);
                 if (column(ch) != 0) {
                     nodes[node].ascii[column(ch)] = next;
                 } else {

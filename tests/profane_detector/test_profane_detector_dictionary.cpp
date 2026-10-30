@@ -18,10 +18,10 @@
 #include "pdf_thread/pdf_thread.hpp"
 #include "profane_detector/profane_detector.hpp"
 
-static ProfaneDetector make_detector(const std::string& words) {
+static ProfaneDetector make_detector(const std::string& words, bool deobfuscate = false) {
     std::filesystem::path path = std::filesystem::temp_directory_path() / "profane_detector_dictionary_test.txt";
     std::ofstream(path) << words;
-    ProfaneDetector detector("", path.string());
+    ProfaneDetector detector("", path.string(), "", deobfuscate);
     std::filesystem::remove(path);
     return detector;
 }
@@ -83,6 +83,7 @@ TEST(ProfaneDetectorDictionaryTest, NonAsciiDictionaryWordFound) {
 TEST(ProfaneDetectorDictionaryTest, SpacedLettersFound) {
     ProfaneDetector detector = make_detector("fuck\n");
     EXPECT_EQ(detector.censor("you f u c k off"), "you ******* off");
+    EXPECT_EQ(detector.censor("you are a f u c k"), "you are a *******");
     EXPECT_EQ(detector.censor("f.u.c.k"), "*******");
 }
 
@@ -143,6 +144,80 @@ TEST(ProfaneDetectorDictionaryTest, OneCensorCharPerOriginalCharacter) {
     ProfaneDetector detector = make_detector("ass\noff\n");
     EXPECT_EQ(detector.censor("aß"), "**");
     EXPECT_EQ(detector.censor("o\uFB00"), "**");
+}
+
+TEST(ProfaneDetectorDictionaryTest, ObfuscatedWordsFound) {
+    ProfaneDetector detector = make_detector("fuck\nshit\nass\nasshole\nfucked\nfucking\nbitch\nson of a bitch\n", true);
+    EXPECT_EQ(detector.censor("sh1t a$$hole $hit sh!t a$$"), "**** ******* **** **** ***");
+    EXPECT_EQ(detector.censor("f*ck f**k sh** f***ing f-ck f?ck"), "**** **** **** ******* **** ****");
+    EXPECT_EQ(detector.censor("f.u_ck s.h.1.t sh*t...this"), "****** ******* ****...this");
+    EXPECT_EQ(detector.censor("fuuuuck shiiit fuuck shiit"), "******* ****** ***** *****");
+    EXPECT_EQ(detector.censor("son of a b1tch"), "*** ** * *****");
+    EXPECT_EQ(detector.censor("ѧss fuckєd fц(k"), "*** ****** ****");
+    EXPECT_EQ(detector.censor("fцck"), "****");
+    EXPECT_EQ(detector.censor("f..u..c..k f\nu\nc\nk"), "********** *******");
+    EXPECT_EQ(detector.censor("f|_|ck f&ck f\u2013ck"), "****** **** ****");
+    EXPECT_EQ(detector.censor("\u202Ekcuf\u202C \u2810\u280B\u2825\u2809\u2805"), "\u202E****\u202C \u2810****");
+    EXPECT_EQ(detector.censor("\u025Fn\u0254\u029E \u029E\u0254n\u025F"), "**** ****");
+}
+
+TEST(ProfaneDetectorDictionaryTest, ObfuscationNeedsEnoughLetters) {
+    ProfaneDetector detector = make_detector("ass\nasses\nfuck\nshit\nwhore\n", true);
+    // one letter and three masks, a common double, words outside the dictionary, markup, a model name, two words, a dash for a consonant
+    EXPECT_EQ(detector.censor("f*** assess covid19 well-known #hi# shi* 4ss who.re who-e"), "f*** assess covid19 well-known #hi# shi* 4ss who.re who-e");
+    EXPECT_EQ(make_detector("shit\n").censor("sh1t"), "sh1t");
+    // Russian роги normalizes to porи; a weak mask needs three letters
+    EXPECT_EQ(make_detector("porn\n", true).censor("роги"), "роги");
+    EXPECT_EQ(make_detector("ass\n", true).censor("A&S"), "A&S");
+    // code, initials, sloppy chat and flag pairs (Argentina, Sweden) from the fuzzers
+    ProfaneDetector code = make_detector("yid\nturd\nass\narse\nshit\n", true);
+    EXPECT_EQ(code.censor("y.id t=rd A. S. S. Murthy my dog..it is \U0001F1E6\U0001F1F7\U0001F1F8\U0001F1EA"),
+        "y.id t=rd A. S. S. Murthy my dog..it is \U0001F1E6\U0001F1F7\U0001F1F8\U0001F1EA");
+    // flags are no letters without deobfuscation
+    EXPECT_EQ(make_detector("fuck\n").censor("\U0001F1EB\U0001F1FA\U0001F1E8\U0001F1F0"), "\U0001F1EB\U0001F1FA\U0001F1E8\U0001F1F0");
+}
+
+TEST(ProfaneDetectorDictionaryTest, VariantDictionaryLoaded) {
+    std::filesystem::path words = std::filesystem::temp_directory_path() / "profane_detector_variant_test_words.txt";
+    std::filesystem::path variants = std::filesystem::temp_directory_path() / "profane_detector_variant_test_variants.txt";
+    std::ofstream(words) << "fuck\n";
+    std::ofstream(variants) << "phuck\n";
+    ProfaneDetector detector("", words.string(), "", true, variants.string());
+    std::filesystem::remove(words);
+    std::filesystem::remove(variants);
+    EXPECT_EQ(detector.censor("phuck fuck"), "***** ****");
+}
+
+TEST(ProfaneDetectorDictionaryTest, GluedWordsFound) {
+    std::filesystem::path words = std::filesystem::temp_directory_path() / "profane_detector_glue_test_words.txt";
+    std::filesystem::path glue = std::filesystem::temp_directory_path() / "profane_detector_glue_test_glue.txt";
+    std::ofstream(words) << "fuck\nass\n";
+    std::ofstream(glue) << "you\ngo\nme\nassume\n";
+    ProfaneDetector detector("", words.string(), "", true, "", glue.string());
+    std::filesystem::remove(words);
+    std::filesystem::remove(glue);
+    EXPECT_EQ(detector.censor("fuckyou gofuck fuck123 fuckfuck #FuckYou assme"), "******* ****** ******* ******** #******* *****");
+    // a listed word, and a part that is not a common word
+    EXPECT_EQ(detector.censor("assume fuckers"), "assume fuckers");
+    // split words, also at the very end
+    EXPECT_EQ(detector.censor("you fu ck"), "you *****");
+    EXPECT_EQ(detector.censor("fu ck"), "*****");
+    EXPECT_EQ(detector.censor("you go me"), "you go me");
+}
+
+TEST(ProfaneDetectorDictionaryTest, ObfuscatedWordsAcrossStreamingBatchesFound) {
+    ProfaneDetector detector = make_detector("shit\n", true);
+    std::string tail;
+    while (tail.size() < 200000) {
+        tail += " ab";
+    }
+    for (std::size_t offset = 65530; offset < 65540; ++offset) {
+        std::string padding(offset % 3, 'x');
+        while (padding.size() < offset) {
+            padding += "ab ";
+        }
+        EXPECT_EQ(detector.censor(padding + "sh!t" + tail), padding + "****" + tail) << offset;
+    }
 }
 
 TEST(ProfaneDetectorDictionaryTest, ThreeAndFourByteLettersFound) {

@@ -22,6 +22,8 @@ file(COPY ${CMAKE_SOURCE_DIR}/src/data DESTINATION ${CMAKE_BINARY_DIR}/)
 file(COPY
     ${CMAKE_SOURCE_DIR}/src/data/en/profanity_words/profanity_wordslist.txt
     ${CMAKE_SOURCE_DIR}/src/data/en/profanity_words/ambiguous_wordslist.txt
+    ${CMAKE_SOURCE_DIR}/src/data/en/profanity_words/variant_wordslist.txt
+    ${CMAKE_SOURCE_DIR}/src/data/en/profanity_words/glue_wordslist.txt
     DESTINATION ${CMAKE_BINARY_DIR}/faster_profanity_data/en
 )
 
@@ -198,6 +200,7 @@ add_library(faster_profanity_lib
     src/pdf_page/pdf_page.cpp
     src/utf16_converter/utf16_converter.cpp
     src/swear_word_hider/swear_word_hider.cpp
+    src/deobfuscator/deobfuscator.cpp
     src/censor_words_loader/censor_words_loader.cpp
     src/trie_loader/trie_loader.cpp
     src/word_filter/word_filter.cpp
@@ -263,6 +266,8 @@ endif()
 install(FILES
     src/data/en/profanity_words/profanity_wordslist.txt
     src/data/en/profanity_words/ambiguous_wordslist.txt
+    src/data/en/profanity_words/variant_wordslist.txt
+    src/data/en/profanity_words/glue_wordslist.txt
     DESTINATION faster_profanity_data/en
 )
 

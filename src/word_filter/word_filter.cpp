@@ -57,6 +57,12 @@ std::uint64_t WordFilter::may_match(
     return keep;
 }
 
+// No false negatives: false means the token is not one of the words
+bool WordFilter::may_contain(const std::string& text, const Token& token) const {
+    std::uint64_t hash = 0;
+    return (word_kinds(text, token, hash) & 1) != 0;
+}
+
 std::uint64_t WordFilter::word_kinds(
     const std::string& text,
     const Token& token,

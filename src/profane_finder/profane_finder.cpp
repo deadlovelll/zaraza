@@ -120,6 +120,9 @@ void ProfaneFinder::find_profane_tokens(
             continue;
         }
         ahead = lookahead;
+        if (deobfuscate) {
+            deobfuscator.decode(normalized, tokens, kept, trie);
+        }
         swear_word_hider.find_profane_tokens(normalized, tokens, trie, search);
         if (first_only && !search.profane_tokens.empty()) {
             return;

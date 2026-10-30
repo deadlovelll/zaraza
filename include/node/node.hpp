@@ -20,6 +20,8 @@ struct Node {
     std::array<std::uint32_t, alphabet.size() + 1> ascii{};
     std::unordered_map<char32_t, std::uint32_t> others;
     std::uint32_t fail = 0;
+    // Bytes from the root: tells a real child from a fail transition
+    std::uint32_t depth = 0;
     std::vector<Match> matches;
 };
 

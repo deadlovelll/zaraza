@@ -6,8 +6,7 @@
 CharKind CharClassifier::classify(char32_t code_point) {
     const utf8proc_property_t* property = utf8proc_get_property(static_cast<utf8proc_int32_t>(code_point));
     if (
-        // invisible: ZWSP, soft hyphen
-        property->ignorable
+        is_invisible(code_point, property)
         // has a decomposition: Ｆ -> F, é -> e + U+0301
         || property->decomp_seqindex != UINT16_MAX
         // fold differs from lowercase: ß -> ss
@@ -25,12 +24,11 @@ CharKind CharClassifier::classify(char32_t code_point) {
 }
 
 CharKind CharClassifier::classify_special(char32_t code_point, const utf8proc_property_t* property) {
-    // invisible: ZWSP, soft hyphen
-    if (property->ignorable) {
-        return CharKind::Invisible;
-    }
     if (is_space(code_point, property)) {
         return CharKind::Space;
+    }
+    if (is_invisible(code_point, property)) {
+        return CharKind::Invisible;
     }
     // standalone accent: Zalgo, f + U+0336
     if (
@@ -55,6 +53,19 @@ CharKind CharClassifier::classify_special(char32_t code_point, const utf8proc_pr
 }
 
 bool CharClassifier::is_space(char32_t code_point, const utf8proc_property_t* property) {
+    const char32_t next_line = 0x85;
     return property->category == UTF8PROC_CATEGORY_ZS || property->category == UTF8PROC_CATEGORY_ZL
-        || property->category == UTF8PROC_CATEGORY_ZP || code_point == U'⠀';
+        || property->category == UTF8PROC_CATEGORY_ZP || code_point == U'⠀' || code_point == next_line;
+}
+
+// ZWSP and soft hyphen, other format and control characters, unassigned ignorables (U+2065, U+FFF0),
+// and a modifier letter inside a word: dipsʻhit
+bool CharClassifier::is_invisible(char32_t code_point, const utf8proc_property_t* property) {
+    return property->ignorable || property->category == UTF8PROC_CATEGORY_CF || property->category == UTF8PROC_CATEGORY_CC
+        || (code_point >= 0x2060 && code_point <= 0x206F) || (code_point >= 0xFFF0 && code_point <= 0xFFF8)
+        || (code_point >= 0xE0000 && code_point <= 0xE0FFF)
+        || (
+            code_point >= 0x2B0 && code_point <= 0x2FF && property->decomp_type == 0
+            && (property->category == UTF8PROC_CATEGORY_LM || property->category == UTF8PROC_CATEGORY_SK)
+        );
 }

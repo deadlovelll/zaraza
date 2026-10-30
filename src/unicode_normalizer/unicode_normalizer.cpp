@@ -2,6 +2,7 @@
 #include "confusables_mapper/confusables_mapper.hpp"
 
 #include <cstring>
+#include <utility>
 
 #include <utf8proc.h>
 
@@ -116,7 +117,7 @@ std::string UnicodeNormalizer::normalize_text(
         spans->reserve(tokens->size());
     }
     const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(source.size());
-    const std::uint8_t* fast = fast_outputs().data();
+    const std::uint8_t* fast = (deobfuscate ? deobfuscated_outputs() : fast_outputs()).data();
     std::ptrdiff_t pos = 0;
     while (pos < size) {
         const unsigned char* bytes = reinterpret_cast<const unsigned char*>(source.data());
@@ -171,14 +172,23 @@ std::string UnicodeNormalizer::normalize_text(
         SourceChar source_char = read_char(source, pos);
         CharKind kind = classify_char(source_char);
         recompose_separate_letter(source, source_char, kind);
+        // A character the fast table turns into one byte, when the loop above had no room for it: the same byte,
+        // written like an invalid one
+        std::uint8_t fast_byte = source_char.code_point < 0x10000 ? fast[source_char.code_point] : 0;
+        if (fast_byte > 1) {
+            kind = CharKind::Invalid;
+        }
         switch (kind) {
             case CharKind::Ascii:
                 out.push_back(lower_ascii(source[static_cast<std::size_t>(source_char.start)]));
                 break;
             case CharKind::Invalid:
-                out.push_back(source[static_cast<std::size_t>(source_char.start)]);
+                out.push_back(fast_byte > 1 ? static_cast<char>(fast_byte) : source[static_cast<std::size_t>(source_char.start)]);
                 break;
             case CharKind::Invisible:
+                if (deobfuscate && is_direction_override(source_char.code_point)) [[unlikely]] {
+                    out = append_source(out, source_char, source);
+                }
                 break;
             case CharKind::Space:
                 out.push_back(' ');
@@ -510,6 +520,39 @@ bool UnicodeNormalizer::lower_ascii_block(const char* bytes, char* lowered) {
     }
     std::memcpy(lowered, chunks, sizeof(chunks));
     return true;
+}
+
+// RLO turns the letters after it backwards, LRO, PDF and PDI end it
+bool UnicodeNormalizer::is_direction_override(char32_t code_point) {
+    return code_point == 0x202E || code_point == 0x202D || code_point == 0x202C || code_point == 0x2069;
+}
+
+const UnicodeNormalizer::FastOutputs& UnicodeNormalizer::deobfuscated_outputs() {
+    static const FastOutputs outputs = build_deobfuscated_outputs();
+    return outputs;
+}
+
+// Braille letters a to z: ⠋⠥⠉⠅. Symbols drawn as letters become uppercase ones, which normalized text
+// has nowhere else, so the decoder can read them as a letter or skip them: fu©k, bitch©
+UnicodeNormalizer::FastOutputs UnicodeNormalizer::build_deobfuscated_outputs() {
+    const char32_t braille_base = 0x2800;
+    const std::array<std::uint8_t, 26> braille_dots = {
+        0x01, 0x03, 0x09, 0x19, 0x11, 0x0B, 0x1B, 0x13, 0x0A, 0x1A, 0x05, 0x07, 0x0D,
+        0x1D, 0x15, 0x0F, 0x1F, 0x17, 0x0E, 0x1E, 0x25, 0x27, 0x3A, 0x2D, 0x3D, 0x35
+    };
+    const std::array<std::pair<char32_t, char>, 18> symbol_letters = {{
+        {U'©', 'C'}, {U'®', 'R'}, {U'€', 'E'}, {U'∑', 'E'}, {U'£', 'L'}, {U'°', 'O'}, {U'¤', 'O'},
+        {U'⊙', 'O'}, {U'☺', 'O'}, {U'§', 'S'}, {U'∫', 'S'}, {U'┴', 'T'}, {U'¡', 'I'},
+        {U'¦', 'I'}, {U'∩', 'N'}, {U'∆', 'A'}, {U'ß', 'B'}, {U'µ', 'U'}
+    }};
+    FastOutputs outputs = fast_outputs();
+    for (std::size_t letter = 0; letter < braille_dots.size(); ++letter) {
+        outputs[braille_base + braille_dots[letter]] = static_cast<std::uint8_t>('a' + letter);
+    }
+    for (const std::pair<char32_t, char>& symbol : symbol_letters) {
+        outputs[symbol.first] = static_cast<std::uint8_t>(symbol.second);
+    }
+    return outputs;
 }
 
 const UnicodeNormalizer::FastOutputs& UnicodeNormalizer::fast_outputs() {

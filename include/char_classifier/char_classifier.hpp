@@ -15,4 +15,5 @@ private:
 
     CharKind classify_special(char32_t code_point, const utf8proc_property_struct* property);
     bool is_space(char32_t code_point, const utf8proc_property_struct* property);
+    bool is_invisible(char32_t code_point, const utf8proc_property_struct* property);
 };

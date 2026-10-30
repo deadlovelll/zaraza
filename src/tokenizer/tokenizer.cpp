@@ -36,6 +36,7 @@ std::size_t Tokenizer::split_words(
 ) {
     const std::size_t block_size = 64;
     const std::size_t max_scalar_span = 512;
+    const std::size_t max_cut_search = 256;
     const utf8proc_uint8_t* bytes = reinterpret_cast<const utf8proc_uint8_t*>(text.data());
     const std::size_t limit = text.size();
     std::size_t token_start = from;
@@ -99,7 +100,11 @@ std::size_t Tokenizer::split_words(
             } else if (!word_char && in_token) {
                 tokens.push_back({token_start, pos, '\0'});
                 in_token = false;
-                if (pos >= target && !is_single_letter(text, tokens.back())) {
+                // A cut at a space keeps sh!t in one batch
+                if (
+                    pos >= target && !is_single_letter(text, tokens.back())
+                    && (bytes[pos] == ' ' || pos >= target + max_cut_search)
+                ) {
                     return pos;
                 }
             }
@@ -209,7 +214,7 @@ bool Tokenizer::is_single_letter(const std::string& text, const Token& token) {
 }
 
 bool Tokenizer::is_spacing_separator(char c) {
-    return c == ' ' || c == '.' || c == '-' || c == '_' || c == '*';
+    return c == ' ' || c == '.' || c == '-' || c == '_' || c == '*' || c == '/';
 }
 
 const Tokenizer::WordChars& Tokenizer::word_chars() {

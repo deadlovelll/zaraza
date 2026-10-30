@@ -29,6 +29,20 @@ void CensorWordsLoader::load_file(const std::string& path) {
     }
 }
 
+// Line number of every word: the list goes from the most frequent
+std::unordered_map<std::string, std::size_t> CensorWordsLoader::load_ranks(const std::string& path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        throw std::system_error(errno, std::generic_category(), "cannot open the word list " + path);
+    }
+    std::unordered_map<std::string, std::size_t> ranks;
+    std::string line;
+    while (std::getline(file, line)) {
+        ranks.emplace(line, ranks.size());
+    }
+    return ranks;
+}
+
 const std::unordered_set<std::string>& CensorWordsLoader::get_censor_words() {
     return censor_words;
 }

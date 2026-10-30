@@ -70,7 +70,7 @@ TEST_F(TokenizerTest, BrokenUtf8SplitsWords) {
 }
 
 TEST_F(TokenizerTest, SpacedLettersJoined) {
-    for (const std::string& text : {"f u c k", "f.u.c.k", "f-u-c-k", "f_u_c_k", "f*u*c*k"}) {
+    for (const std::string& text : {"f u c k", "f.u.c.k", "f-u-c-k", "f_u_c_k", "f*u*c*k", "f/u/c/k"}) {
         std::vector<Token> tokens = tokenizer.tokenize(text);
         ASSERT_EQ(tokens.size(), 1u) << text;
         EXPECT_EQ(text_of(text, tokens[0]), "fuck") << text;

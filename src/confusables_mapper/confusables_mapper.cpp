@@ -1,5 +1,6 @@
 #include "confusables_mapper/confusables_mapper.hpp"
 #include "confusables_mapper/confusables.hpp"
+#include "confusables_mapper/stylized_letters.hpp"
 
 #include <algorithm>
 
@@ -33,6 +34,9 @@ ConfusablesMapper::Table ConfusablesMapper::build_table() {
         if (confusable.code_point < built.size()) {
             built[confusable.code_point] = confusable.latin;
         }
+    }
+    for (const Confusable& letter : stylized_letters) {
+        built[letter.code_point] = letter.latin;
     }
     for (const Confusable& confusable : confusables) {
         char32_t lowered = static_cast<char32_t>(utf8proc_tolower(static_cast<utf8proc_int32_t>(confusable.code_point)));

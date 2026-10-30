@@ -36,4 +36,9 @@ private:
         std::size_t last,
         const Match& match
     );
+    std::size_t leading_article(
+        const std::string& text,
+        const Token& token,
+        const Match& match
+    );
 };

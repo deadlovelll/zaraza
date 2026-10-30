@@ -17,6 +17,7 @@ public:
         const std::vector<Token>& tokens,
         std::size_t block
     ) const;
+    bool may_contain(const std::string& text, const Token& token) const;
 private:
     std::vector<std::uint64_t> word_bits;
     std::vector<std::uint64_t> pair_bits;
